@@ -27,7 +27,7 @@ export default function LoginPage() {
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-muted p-10 lg:flex dark:border-r">
+      <div className="relative hidden h-full flex-col bg-muted p-10 lg:flex border-r">
         <div className="absolute inset-0 bg-background" />
         <div className="relative z-20 flex items-center text-lg font-medium text-foreground">
           <svg
@@ -49,7 +49,7 @@ export default function LoginPage() {
             <p className="text-lg text-foreground">
               &ldquo;This dashboard has transformed how we handle our daily tasks and track our progress.&rdquo;
             </p>
-            <footer className="text-sm text-muted-foreground">Sofia Davis</footer>
+            <footer className="text-sm text-muted-foreground">Mohit Kumar</footer>
           </blockquote>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
             </form>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
