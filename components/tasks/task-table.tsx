@@ -8,7 +8,6 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { deleteTask } from "../../lib/api";
 import { useState, useMemo, useEffect } from "react";
 import { EditTaskDialog } from "./edit-task-dialog";
-import { SortingState, ColumnFiltersState } from "@tanstack/react-table";
 import { useToast } from "../../components/ui/use-toast";
 
 interface TaskTableProps {
