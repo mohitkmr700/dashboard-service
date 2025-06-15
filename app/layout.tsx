@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "../components/sidebar";
-import { ThemeProvider } from "./providers";
 import { Toaster } from "../components/ui/toaster";
+import { ThemeProvider } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,21 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-          storageKey="dashboard-theme"
-        >
-          <div className="flex min-h-screen bg-background">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto p-8">
-              {children}
-            </main>
-          </div>
+        <ThemeProvider>
+          {children}
+          <Toaster />
         </ThemeProvider>
-        <Toaster />
       </body>
     </html>
   );

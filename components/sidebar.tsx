@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Users, Settings, BarChart, FileText, Mail } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import { LogOut } from "lucide-react";
 
 const routes = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -16,6 +24,14 @@ const routes = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear any auth tokens or user data
+    localStorage.removeItem("token");
+    // Redirect to login page
+    router.push("/login");
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-background">
@@ -49,10 +65,24 @@ export function Sidebar() {
       {/* User Profile */}
       <div className="border-t p-4">
         <div className="flex items-center space-x-3">
-          <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
-          <div>
-            <p className="text-sm font-medium">John Doe</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+          <div className="mt-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex w-full items-center gap-2 rounded-lg p-2 hover:bg-accent">
+                  <Avatar>
+                    <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">User</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
