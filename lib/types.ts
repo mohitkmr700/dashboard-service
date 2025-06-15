@@ -9,6 +9,35 @@ export interface Route {
   role?: UserRole;
 }
 
+export type TaskStatus = 'completed' | 'pending' | 'in_progress' | 'overdue' | 'urgent';
+
+export interface Task {
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  title: string;
+  description: string;
+  email: string;
+  is_done: boolean;
+  progress: number;
+  deadline: string;
+  created: string;
+  updated: string;
+}
+
+export type CreateTaskInput = Omit<Task, 'id' | 'collectionId' | 'collectionName' | 'created' | 'updated'>;
+
+export interface DashboardStats {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  pendingTasks: number;
+  overdueTasks: number;
+}
+
 export interface User {
-  role: UserRole;
+  id: string;
+  name: string;
+  email: string;
+  role: 'user' | 'punisher';
 } 
