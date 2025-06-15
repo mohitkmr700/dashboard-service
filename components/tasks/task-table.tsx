@@ -6,15 +6,6 @@ import { Badge } from "../ui/badge";
 import { format, parseISO,startOfDay } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
 import { deleteTask } from "../../lib/api";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
 import { useState, useMemo, useEffect } from "react";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { SortingState, ColumnFiltersState } from "@tanstack/react-table";
@@ -113,14 +104,10 @@ const getProgressColor = (progress: number) => {
   };
 };
 
-export function TaskTable({ tasks: initialTasks, onDelete, onEdit, onTaskUpdated }: TaskTableProps) {
+export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: TaskTableProps) {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = useState({});
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -146,7 +133,6 @@ export function TaskTable({ tasks: initialTasks, onDelete, onEdit, onTaskUpdated
 
   const handleDeleteClick = (id: string) => {
     setTaskToDelete(id);
-    setDeleteDialogOpen(true);
   };
 
   const handleEditClick = (task: Task) => {
@@ -184,7 +170,6 @@ export function TaskTable({ tasks: initialTasks, onDelete, onEdit, onTaskUpdated
       });
     } finally {
       setIsDeleting(false);
-      setDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
   };
@@ -293,7 +278,6 @@ export function TaskTable({ tasks: initialTasks, onDelete, onEdit, onTaskUpdated
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => {
-                  setDeleteDialogOpen(false);
                   setTaskToDelete(null);
                 }}
                 className="px-4 py-2 text-muted-foreground hover:text-foreground"
