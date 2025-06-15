@@ -6,6 +6,7 @@ import { getTasks, deleteTask } from '../../lib/api';
 import { TaskTable } from '../../components/tasks/task-table';
 import { CreateTaskDialog } from '../../components/CreateTaskDialog';
 import { DashboardStats } from '../../components/DashboardStats';
+import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { Progress } from '../../components/ui/progress';
 
 export default function DashboardPage() {
@@ -31,24 +32,16 @@ export default function DashboardPage() {
     fetchTasks();
   }, []);
 
-  const handleTaskCreated = () => {
+  const handleTaskCreated = (newTask: Task) => {
+    setTasks(prevTasks => [...prevTasks, newTask]);
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
+  };
+
+  const handleTaskUpdated = () => {
     fetchTasks();
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    try {
-      await deleteTask(id);
-      setTasks(tasks.filter(task => task.id !== id));
-    } catch (err) {
-      console.error('Error deleting task:', err);
-    }
-  };
-
-  const stats = {
-    totalTasks: tasks.length,
-    completedTasks: tasks.filter(task => task.is_done).length,
-    inProgressTasks: tasks.filter(task => !task.is_done && task.progress > 0).length,
-    pendingTasks: tasks.filter(task => !task.is_done && task.progress === 0).length,
   };
 
   if (loading) {
@@ -79,16 +72,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Task Management Dashboard</h1>
-        <CreateTaskDialog onTaskCreated={handleTaskCreated} />
-      </div>
+    <div className="h-[calc(100vh-4rem)] overflow-hidden">
+      <div className="h-full flex flex-col p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Task Management Dashboard</h1>
+          <CreateTaskDialog onTaskCreated={handleTaskCreated} />
+        </div>
 
-      <DashboardStats stats={stats} />
+        <div className="flex-1 grid gap-4 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <DashboardStats stats={{
+              totalTasks: tasks.length,
+              completedTasks: tasks.filter(task => task.is_done).length,
+              inProgressTasks: tasks.filter(task => !task.is_done && task.progress > 0).length,
+              pendingTasks: tasks.filter(task => !task.is_done && task.progress === 0).length,
+            }} />
+          </div>
+          
+          <ProgressGraphCard tasks={tasks} />
 
-      <div className="mt-8">
-        <TaskTable tasks={tasks} onDelete={handleDeleteTask} onEdit={() => {}} />
+          <div className="flex-1 overflow-hidden">
+            <TaskTable 
+              tasks={tasks} 
+              onDelete={handleDeleteTask} 
+              onEdit={() => {}} 
+              onTaskUpdated={handleTaskUpdated}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

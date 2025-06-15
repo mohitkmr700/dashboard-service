@@ -18,11 +18,12 @@ export interface Task {
   title: string;
   description: string;
   email: string;
-  is_done: boolean;
+  is_done: boolean | null;
   progress: number;
-  deadline: string;
+  deadline: string | null;
   created: string;
   updated: string;
+  completed_at: string | null;
 }
 
 export type CreateTaskInput = Omit<Task, 'id' | 'collectionId' | 'collectionName' | 'created' | 'updated'>;
