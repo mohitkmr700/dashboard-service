@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 // Mock user for demonstration
-const currentUser = { role: "admin" as const };
+// const currentUser = { role: "admin" as const };
 
 export default function RootLayout({
   children,

@@ -1,4 +1,4 @@
-import { BarChart, Users, FileText, Mail, Activity, Clock, ArrowUpRight } from "lucide-react";
+import { BarChart, Users, FileText, Mail, Clock, ArrowUpRight } from "lucide-react";
 
 const stats = [
   {
