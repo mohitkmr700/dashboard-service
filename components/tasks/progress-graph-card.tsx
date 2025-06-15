@@ -203,12 +203,13 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
 
   const data = getDateRangeData();
   
-  const totalOnTime = data.reduce((sum, day) => sum + day.onTime, 0);
-  const totalLate = data.reduce((sum, day) => sum + day.late, 0);
+  // Calculate totals from the last data point only
+  const lastDataPoint = data[data.length - 1];
+  const totalOnTime = lastDataPoint?.onTime || 0;
+  const totalLate = lastDataPoint?.late || 0;
 
   const efficiencyRate = calculateEfficiencyRate(tasks);
   const trend = calculateTrend(data);
-
 
   // Ensure we have at least one data point
   const chartData = data.length > 0 ? data : [
@@ -408,4 +409,4 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
       </CardContent>
     </Card>
   );
-} 
+}
