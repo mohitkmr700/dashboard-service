@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Task } from '../../lib/types';
-import { getTasks, deleteTask } from '../../lib/api';
+import { getTasks } from '../../lib/api';
 import { TaskTable } from '../../components/tasks/task-table';
 import { CreateTaskDialog } from '../../components/CreateTaskDialog';
 import { DashboardStats } from '../../components/DashboardStats';

@@ -1,7 +1,5 @@
 import { Task, CreateTaskInput } from './types';
 
-const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN;
-
 export async function getTasks(email: string): Promise<Task[]> {
   const response = await fetch(`/api/proxy/list?email=${encodeURIComponent(email)}`);
   if (!response.ok) {

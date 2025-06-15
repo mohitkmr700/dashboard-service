@@ -2,9 +2,8 @@
 
 import { Task } from "../../lib/types";
 import { Button } from "../ui/button";
-import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
+import { format, parseISO,startOfDay } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
 import { deleteTask } from "../../lib/api";
 import { toast } from "sonner";
@@ -21,9 +20,9 @@ import { EditTaskDialog } from "./edit-task-dialog";
 
 interface TaskTableProps {
   tasks: Task[];
-  onEdit: (task: Task) => void;
-  onDelete: (taskId: string) => void;
-  onTaskUpdated: () => void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
+  onTaskUpdated?: () => void;
 }
 
 const formatDate = (dateString: string | null) => {
@@ -112,7 +111,7 @@ const getProgressColor = (progress: number) => {
   };
 };
 
-export function TaskTable({ tasks, onEdit, onDelete, onTaskUpdated }: TaskTableProps) {
+export function TaskTable({ tasks, onDelete, onTaskUpdated }: TaskTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -149,7 +148,7 @@ export function TaskTable({ tasks, onEdit, onDelete, onTaskUpdated }: TaskTableP
         task.id === updatedTask.id ? updatedTask : task
       )
     );
-    onTaskUpdated();
+    onTaskUpdated?.();
   };
 
   const handleConfirmDelete = async () => {
@@ -160,8 +159,8 @@ export function TaskTable({ tasks, onEdit, onDelete, onTaskUpdated }: TaskTableP
       if (response.statusCode === 200) {
         toast.success(response.message || 'Task deleted successfully');
         setLocalTasks(prevTasks => prevTasks.filter(task => task.id !== taskToDelete));
-        onDelete(taskToDelete);
-        onTaskUpdated();
+        onDelete?.(taskToDelete);
+        onTaskUpdated?.();
       } else {
         toast.error('Failed to delete task');
       }

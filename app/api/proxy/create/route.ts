@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { Task } from '../../../../lib/types';
 
 const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN;
 

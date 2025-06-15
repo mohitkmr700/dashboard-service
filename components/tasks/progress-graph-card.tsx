@@ -1,11 +1,10 @@
 "use client";
 
 import { Task } from "../../lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfDay, parseISO, differenceInDays, addDays, isAfter, isBefore, isSameDay, differenceInHours, subHours, addHours } from 'date-fns';
+import { format, subDays, startOfDay, parseISO, differenceInDays, isAfter, differenceInHours, subHours, addHours } from 'date-fns';
 import { TrendingUp } from "lucide-react";
-import { ChartConfig, ChartContainer, ChartTooltipContent } from "../ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useState } from "react";
 
@@ -24,20 +23,13 @@ interface DailyProgress {
 
 type TimeFilter = "all" | "day" | "12h";
 
-const chartConfig = {
-  completed: {
-    label: "Total Completed",
-    color: "hsl(var(--primary))",
-  },
-  onTime: {
-    label: "On Time",
-    color: "hsl(var(--success))",
-  },
-  late: {
-    label: "Late",
-    color: "hsl(var(--destructive))",
-  },
-} satisfies ChartConfig;
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: DailyProgress;
+  }>;
+  label?: string;
+}
 
 export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
@@ -47,8 +39,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
 
     const now = new Date();
     let startDate: Date;
-    let endDate: Date = now;
-    let intervalHours = 24; // Default to daily intervals
+    const endDate = now;
     let dataPointInterval = 1; // Default to hourly data points
 
     // Set date range based on time filter
@@ -58,7 +49,6 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
         break;
       case "12h":
         startDate = subHours(now, 12);
-        intervalHours = 12;
         dataPointInterval = 1; // Create data points every hour
         break;
       default: // "all"
@@ -213,18 +203,12 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
 
   const data = getDateRangeData();
   
-  // Calculate metrics from the processed data
-  const totalCompleted = data.reduce((sum, day) => sum + day.completed, 0);
   const totalOnTime = data.reduce((sum, day) => sum + day.onTime, 0);
   const totalLate = data.reduce((sum, day) => sum + day.late, 0);
 
   const efficiencyRate = calculateEfficiencyRate(tasks);
   const trend = calculateTrend(data);
 
-  // Format date range for display
-  const dateRange = data.length > 0 
-    ? `${format(data[0].dateObj, 'MMM d')} - ${format(data[data.length - 1].dateObj, 'MMM d')}`
-    : '';
 
   // Ensure we have at least one data point
   const chartData = data.length > 0 ? data : [
@@ -237,7 +221,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
   ];
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -260,7 +244,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
               <div className="mt-3 pt-2 border-t border-gray-700">
                 <div className="max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                   <div className="space-y-1.5">
-                    {data.taskDetails.map((task: any, index: number) => (
+                    {data.taskDetails.map((task, index) => (
                       <div
                         key={index}
                         className="flex justify-between items-center bg-[#1a1a1a] backdrop-blur-none"

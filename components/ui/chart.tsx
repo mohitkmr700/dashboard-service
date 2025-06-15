@@ -16,13 +16,14 @@ interface ChartContainerProps {
   config: ChartConfig
 }
 
-export function ChartContainer({ children, config }: ChartContainerProps) {
+export function ChartContainer({ children }: ChartContainerProps) {
   return (
     <div className="w-full h-full">
       {children}
     </div>
   )
 }
+
 
 interface ChartTooltipContentProps extends TooltipProps<number, string> {
   indicator?: "line" | "bar"
@@ -42,7 +43,7 @@ export function ChartTooltipContent({
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm text-muted-foreground">{label}</div>
         </div>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item, index) => (
           <div key={index} className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <div
@@ -50,7 +51,7 @@ export function ChartTooltipContent({
                   "h-2 w-2 rounded-full",
                   indicator === "line" ? "h-0.5 w-4" : "h-2 w-2"
                 )}
-                style={{ backgroundColor: item.color }}
+                style={{ backgroundColor: item.color || 'transparent' }}
               />
               <span className="text-sm font-medium">{item.name}</span>
             </div>

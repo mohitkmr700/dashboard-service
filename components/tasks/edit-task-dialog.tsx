@@ -112,7 +112,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>
-            Make changes to your task here. Click save when you're done.
+            {`Make changes to your task here. Click save when you're done.`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
