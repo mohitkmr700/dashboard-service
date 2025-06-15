@@ -119,7 +119,7 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
     if (hasSignificantChanges) {
       setTasks(initialTasks);
     }
-  }, [initialTasks]);
+  }, [initialTasks, tasks]);
 
   // Sort tasks by updated timestamp in descending order
   const sortedTasks = useMemo(() => {
