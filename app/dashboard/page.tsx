@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Task } from '../../lib/types';
 import { getTasks } from '../../lib/api';
 import { TaskTable } from '../../components/tasks/task-table';
@@ -40,9 +40,21 @@ export default function DashboardPage() {
     setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
   };
 
-  const handleTaskUpdated = () => {
-    fetchTasks();
+  const handleTaskUpdated = (updatedTask: Task) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      )
+    );
   };
+
+  // Memoize the stats to prevent unnecessary recalculations
+  const stats = useMemo(() => ({
+    totalTasks: tasks.length,
+    completedTasks: tasks.filter(task => task.is_done).length,
+    inProgressTasks: tasks.filter(task => !task.is_done && task.progress > 0).length,
+    pendingTasks: tasks.filter(task => !task.is_done && task.progress === 0).length,
+  }), [tasks]);
 
   if (loading) {
     return (
@@ -81,12 +93,7 @@ export default function DashboardPage() {
 
         <div className="flex-1 grid gap-4 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <DashboardStats stats={{
-              totalTasks: tasks.length,
-              completedTasks: tasks.filter(task => task.is_done).length,
-              inProgressTasks: tasks.filter(task => !task.is_done && task.progress > 0).length,
-              pendingTasks: tasks.filter(task => !task.is_done && task.progress === 0).length,
-            }} />
+            <DashboardStats stats={stats} />
           </div>
           
           <ProgressGraphCard tasks={tasks} />

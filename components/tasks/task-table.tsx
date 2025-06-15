@@ -17,12 +17,14 @@ import {
 } from "../ui/dialog";
 import { useState, useMemo, useEffect } from "react";
 import { EditTaskDialog } from "./edit-task-dialog";
+import { SortingState, ColumnFiltersState } from "@tanstack/react-table";
+import { useToast } from "../../components/ui/use-toast";
 
 interface TaskTableProps {
   tasks: Task[];
-  onEdit?: (task: Task) => void;
-  onDelete?: (taskId: string) => void;
-  onTaskUpdated?: () => void;
+  onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
+  onTaskUpdated: (task: Task) => void;
 }
 
 const formatDate = (dateString: string | null) => {
@@ -111,26 +113,36 @@ const getProgressColor = (progress: number) => {
   };
 };
 
-export function TaskTable({ tasks, onDelete, onTaskUpdated }: TaskTableProps) {
+export function TaskTable({ tasks: initialTasks, onDelete, onEdit, onTaskUpdated }: TaskTableProps) {
+  const { toast } = useToast();
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rowSelection, setRowSelection] = useState({});
+  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
 
-  // Update local tasks when props change
+  // Update local tasks only when there are significant changes
   useEffect(() => {
-    setLocalTasks(tasks);
-  }, [tasks]);
+    const hasSignificantChanges = initialTasks.length !== tasks.length || 
+      initialTasks.some((task, index) => task.id !== tasks[index]?.id);
+    
+    if (hasSignificantChanges) {
+      setTasks(initialTasks);
+    }
+  }, [initialTasks]);
 
   // Sort tasks by updated timestamp in descending order
   const sortedTasks = useMemo(() => {
-    return [...localTasks].sort((a, b) => {
+    return [...tasks].sort((a, b) => {
       const dateA = a.updated ? new Date(a.updated).getTime() : 0;
       const dateB = b.updated ? new Date(b.updated).getTime() : 0;
       return dateB - dateA;
     });
-  }, [localTasks]);
+  }, [tasks]);
 
   const handleDeleteClick = (id: string) => {
     setTaskToDelete(id);
@@ -143,31 +155,35 @@ export function TaskTable({ tasks, onDelete, onTaskUpdated }: TaskTableProps) {
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setLocalTasks(prevTasks => 
+    setTasks(prevTasks => 
       prevTasks.map(task => 
         task.id === updatedTask.id ? updatedTask : task
       )
     );
-    onTaskUpdated?.();
+    onTaskUpdated(updatedTask);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!taskToDelete) return;
-
+  const handleDelete = async (id: string) => {
     try {
-      const response = await deleteTask(taskToDelete);
-      if (response.statusCode === 200) {
-        toast.success(response.message || 'Task deleted successfully');
-        setLocalTasks(prevTasks => prevTasks.filter(task => task.id !== taskToDelete));
-        onDelete?.(taskToDelete);
-        onTaskUpdated?.();
-      } else {
-        toast.error('Failed to delete task');
-      }
+      setIsDeleting(true);
+      await deleteTask(id);
+      // Update local state immediately
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
+      // Notify parent component
+      onDelete(id);
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
     } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      });
     } finally {
+      setIsDeleting(false);
       setDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
@@ -269,24 +285,32 @@ export function TaskTable({ tasks, onDelete, onTaskUpdated }: TaskTableProps) {
         </div>
       </div>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this task? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {taskToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background text-foreground p-6 rounded-lg shadow-lg border border-border relative z-50">
+            <h3 className="text-lg font-medium mb-4">Delete Task</h3>
+            <p className="text-muted-foreground mb-6">Are you sure you want to delete this task? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setTaskToDelete(null);
+                }}
+                className="px-4 py-2 text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => taskToDelete && handleDelete(taskToDelete)}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <EditTaskDialog
         task={taskToEdit}
