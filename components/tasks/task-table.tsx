@@ -270,8 +270,8 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
       </div>
 
       {taskToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-card text-card-foreground p-6 rounded-lg shadow-lg border border-border">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card text-card-foreground p-6 rounded-lg shadow-lg border border-border relative z-50">
             <h3 className="text-lg font-medium mb-4">Delete Task</h3>
             <p className="text-muted-foreground mb-6">Are you sure you want to delete this task? This action cannot be undone.</p>
             <div className="flex justify-end space-x-4">
