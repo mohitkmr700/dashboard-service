@@ -1,41 +1,65 @@
 "use client";
 
-import { useState } from 'react';
-import { TaskTable } from '@/components/tasks/task-table';
-import CreateTaskDialog from '@/components/tasks/create-task-dialog';
-import { Task } from '@/lib/types';
-import { dummyTasks } from '@/lib/dummy-data';
+import { useState, useEffect } from 'react';
+import { Task } from '../../lib/types';
+import { getTasks, deleteTask } from '../../lib/api';
+import { TaskTable } from '../../components/TaskTable';
+import { CreateTaskDialog } from '../../components/CreateTaskDialog';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(dummyTasks);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await getTasks('mohit2010sm@gmail.com');
+      setTasks(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch tasks');
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const handleTaskCreated = () => {
-    // In a real app, this would fetch the updated tasks from the API
-    setIsCreateDialogOpen(false);
+    fetchTasks();
   };
 
-  const handleEditTask = (task: Task) => {
-    // In a real app, this would open an edit dialog
-    console.log('Edit task:', task);
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await deleteTask(id);
+      setTasks(tasks.filter(task => task.id !== id));
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    // In a real app, this would call the API to delete the task
-    setTasks(tasks.filter(task => task.id !== taskId));
-  };
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Tasks</h1>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Tasks</h1>
         <CreateTaskDialog onTaskCreated={handleTaskCreated} />
       </div>
-      <TaskTable
-        tasks={tasks}
-        onEdit={handleEditTask}
-        onDelete={handleDeleteTask}
-      />
+
+      <div className="mt-8">
+        <TaskTable tasks={tasks} onDeleteTask={handleDeleteTask} onEdit={() => {}} />
+      </div>
     </div>
   );
 } 
