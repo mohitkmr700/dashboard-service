@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Task } from '../../lib/types';
 import { getTasks } from '../../lib/api';
-import { TaskTable } from '../../components/tasks/task-table';
-import { CreateTaskDialog } from '../../components/CreateTaskDialog';
-import { DashboardStats } from '../../components/DashboardStats';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { Progress } from '../../components/ui/progress';
+import { isAuthenticated } from '../../lib/auth'
+import { useRouter } from 'next/navigation';
+import { TaskTable } from '../../components/tasks/task-table';
+import { DashboardStats } from '../../components/DashboardStats';
+import { CreateTaskDialog } from '../../components/CreateTaskDialog';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +30,12 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     fetchTasks();

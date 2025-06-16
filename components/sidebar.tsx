@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import { clearAuth } from '../lib/auth'
 
 const routes = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -27,10 +28,8 @@ export function Sidebar() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear any auth tokens or user data
-    localStorage.removeItem("token");
-    // Redirect to login page
-    router.push("/login");
+    clearAuth();
+    window.location.href = '/login';
   };
 
   return (
