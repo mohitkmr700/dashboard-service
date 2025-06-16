@@ -62,7 +62,7 @@ export default function LoginPage() {
           <div>
             <h1 className="text-4xl font-bold">Welcome Back</h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              "The only way to do great work is to love what you do."
+              {"The only way to do great work is to love what you do."}
             </p>
           </div>
           <p className="text-sm text-muted-foreground">- Mohit Kumar</p>

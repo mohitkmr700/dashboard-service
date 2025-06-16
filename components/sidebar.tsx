@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, Users, Settings, BarChart, FileText, Mail } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -25,7 +25,6 @@ const routes = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleLogout = () => {
     clearAuth();
