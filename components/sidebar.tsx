@@ -13,6 +13,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
 import { clearAuth } from '../lib/auth'
+import { useToast } from "./ui/use-toast";
 
 const routes = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -25,10 +26,39 @@ const routes = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    clearAuth();
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      // Clear local auth state
+      clearAuth();
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+
+      // Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
