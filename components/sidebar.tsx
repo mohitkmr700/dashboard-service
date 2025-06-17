@@ -55,7 +55,7 @@ export function Sidebar() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to logout. Please try again.",
+        description: `Failed to logout. Please try again. ${error}`,
         variant: "destructive",
       });
     }
