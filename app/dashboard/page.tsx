@@ -5,22 +5,26 @@ import { Task } from '../../lib/types';
 import { getTasks } from '../../lib/api';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { Progress } from '../../components/ui/progress';
-import { isAuthenticated } from '../../lib/auth'
-import { useRouter } from 'next/navigation';
 import { TaskTable } from '../../components/tasks/task-table';
 import { DashboardStats } from '../../components/DashboardStats';
 import { CreateTaskDialog } from '../../components/CreateTaskDialog';
 
+interface DecodedToken {
+  profile_picture: string | 'U';
+  full_name: string | 'User';
+  email: string | 'notworking@gmail.com';
+}
+
 export default function DashboardPage() {
-  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>();
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (email: string) => {
     try {
       setLoading(true);
-      const data = await getTasks('mohit2010sm@gmail.com');
+      const data = await getTasks(email);
       setTasks(data);
       setError(null);
     } catch (err) {
@@ -32,14 +36,25 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login');
-    }
-  }, [router]);
+    const getToken = async () => {
+      try {
+        const response = await fetch('/api/auth/token');
+        const data = await response.json();
+        if (data.decoded) {
+          setDecodedToken(data.decoded);
+        }
+      } catch (error) {
+        console.error('Error getting token:', error);
+      }
+    };
+    getToken();
+  }, []);
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (decodedToken) {
+      fetchTasks(decodedToken.email);
+    }
+  }, [decodedToken]);
 
   const handleTaskCreated = (newTask: Task) => {
     setTasks(prevTasks => [...prevTasks, newTask]);
@@ -82,7 +97,7 @@ export default function DashboardPage() {
         <div className="text-center">
           <p className="text-destructive mb-4">{error}</p>
           <button
-            onClick={fetchTasks}
+            onClick={() => fetchTasks(decodedToken?.email || 'notworking@gmail.com')}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry

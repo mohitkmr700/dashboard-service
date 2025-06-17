@@ -14,6 +14,7 @@ import {
 import { LogOut } from "lucide-react";
 import { clearAuth } from '../lib/auth'
 import { useToast } from "./ui/use-toast";
+import { useEffect, useState } from "react";
 
 const routes = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -24,9 +25,15 @@ const routes = [
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
+interface DecodedToken {
+  profile_picture: string;
+  full_name: string;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>();
 
   const handleLogout = async () => {
     try {
@@ -60,6 +67,17 @@ export function Sidebar() {
       });
     }
   };
+
+  useEffect(() => {
+    const getToken = async () => {
+      const response = await fetch('/api/auth/token');
+      const data = await response.json();
+      if (data.decoded) {
+        setDecodedToken(data.decoded);
+      }
+    }
+    getToken();
+  }, []);
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-background">
@@ -98,10 +116,10 @@ export function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-2 rounded-lg p-2 hover:bg-accent">
                   <Avatar>
-                    <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
+                    <AvatarImage src={decodedToken?.profile_picture || 'U'} alt="User" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">User</span>
+                  <span className="text-sm font-medium">{decodedToken?.full_name || 'User'}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

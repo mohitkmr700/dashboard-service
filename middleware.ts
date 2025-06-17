@@ -1,33 +1,28 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-// Add paths that should be protected
-const protectedPaths = [
-  '/dashboard',
-  '/analytics',
-  '/documents',
-  '/messages',
-  '/settings',
-]
+import { getAccessToken } from './lib/cookies'
 
 // Add paths that should be accessible without authentication
 const publicPaths = [
   '/login',
   '/api/auth/login',
+  '/api/auth/logout',
+  '/_next',
+  '/favicon.ico',
+  '/public',
 ]
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Check if the path is protected
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+  // Check if the path is public
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
 
   // Get the access_token from cookies
-  const accessToken = request.cookies.get('access_token')?.value
+  const accessToken = await getAccessToken()
 
   // If accessing a protected path without a token, redirect to login
-  if (isProtectedPath && !accessToken) {
+  if (!isPublicPath && !accessToken) {
     const url = new URL('/login', request.url)
     url.searchParams.set('from', pathname)
     return NextResponse.redirect(url)

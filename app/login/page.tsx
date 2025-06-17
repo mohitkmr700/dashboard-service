@@ -8,7 +8,7 @@ import { Input } from "../../components/ui/input"
 import { Button } from "../../components/ui/button"
 import { ThemeToggle } from "../../components/theme-toggle"
 import { useToast } from "../../components/ui/use-toast"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -37,26 +37,28 @@ export default function LoginPage() {
         throw new Error(data.error || "Authentication failed")
       }
 
-      toast({
-        title: "Success",
-        description: "Login successful! Redirecting...",
-      })
-
-      // Redirect to dashboard after successful login
-      router.push("/dashboard")
+      // Use replace instead of push for faster navigation
+      router.replace("/dashboard")
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Authentication failed",
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Logging in...</p>
+          </div>
+        </div>
+      )}
       <div className="hidden w-1/2 bg-background lg:block">
         <div className="flex h-full flex-col justify-between p-8">
           <div>
@@ -92,6 +94,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -103,6 +106,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -110,6 +114,7 @@ export default function LoginPage() {
                     size="icon"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -124,7 +129,14 @@ export default function LoginPage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
               </Button>
             </form>
           </CardContent>
