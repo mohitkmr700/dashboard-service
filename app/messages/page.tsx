@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { PageContainer } from "@/components/page-container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { PageContainer } from "../../components/page-container";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
 import { Plus, Mail, Trash2, Archive } from "lucide-react";
 
 const messages = [

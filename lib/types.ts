@@ -38,7 +38,11 @@ export interface DashboardStats {
 
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: 'user' | 'punisher';
+  full_name: string;
+  role: 'user' | 'punisher' | 'admin';
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+  profile_picture?: string;
 } 

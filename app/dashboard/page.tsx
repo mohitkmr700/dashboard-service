@@ -7,7 +7,7 @@ import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { Progress } from '../../components/ui/progress';
 import { TaskTable } from '../../components/tasks/task-table';
 import { DashboardStats } from '../../components/DashboardStats';
-import { CreateTaskDialog } from '../../components/CreateTaskDialog';
+import CreateTaskDialog from '../../components/tasks/create-task-dialog';
 
 interface DecodedToken {
   profile_picture: string | 'U';
@@ -56,8 +56,11 @@ export default function DashboardPage() {
     }
   }, [decodedToken]);
 
-  const handleTaskCreated = (newTask: Task) => {
-    setTasks(prevTasks => [...prevTasks, newTask]);
+  const handleTaskCreated = () => {
+    // Refresh tasks after creating a new one
+    if (decodedToken) {
+      fetchTasks(decodedToken.email);
+    }
   };
 
   const handleDeleteTask = (id: string) => {

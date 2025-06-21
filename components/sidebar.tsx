@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
-import { clearAuth } from '../lib/auth'
 import { useToast } from "./ui/use-toast";
 import { useEffect, useState } from "react";
+import { useToken } from "../lib/token-context";
 
 const routes = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -34,6 +34,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
   const [decodedToken, setDecodedToken] = useState<DecodedToken>();
+  const { clearToken } = useToken();
 
   const handleLogout = async () => {
     try {
@@ -48,8 +49,8 @@ export function Sidebar() {
         throw new Error('Logout failed');
       }
 
-      // Clear local auth state
-      clearAuth();
+      // Clear token using context
+      clearToken();
       
       // Show success message
       toast({

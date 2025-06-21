@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageContainer } from "@/components/page-container";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { PageContainer } from "../../components/page-container";
 
 export default function AnalyticsPage() {
   return (
