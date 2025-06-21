@@ -22,11 +22,17 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // Call the token API endpoint
-      const response = await fetch('/api/token', {
+      // Call the correct token API endpoint
+      const response = await fetch('/api/auth/token', {
         method: 'GET',
         credentials: 'include', // Include cookies
       });
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format from server');
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to fetch token: ${response.status}`);
@@ -39,12 +45,15 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
         // Store in localStorage for persistence
         localStorage.setItem('access_token', data.token);
       } else {
-        throw new Error('No token received from API');
+        // No token is a valid state, not an error
+        setToken(null);
+        localStorage.removeItem('access_token');
       }
     } catch (err) {
       console.error('Error fetching token:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch token');
       setToken(null);
+      localStorage.removeItem('access_token');
     } finally {
       setIsLoading(false);
     }

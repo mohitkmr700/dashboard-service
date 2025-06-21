@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
     
     if (!accessToken) {
       return NextResponse.json(
-        { error: 'No access token found in cookies' },
-        { status: 401 }
+        { token: null, message: 'No access token found' },
+        { status: 200 }
       );
     }
     
