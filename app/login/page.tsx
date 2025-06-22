@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimationLoading, setIsAnimationLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [previousTheme, setPreviousTheme] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const { theme } = useTheme()
@@ -32,16 +33,66 @@ export default function LoginPage() {
     setMounted(true)
   }, [])
 
-  // Handle animation loading state
+  // Handle animation loading state only when theme changes
   useEffect(() => {
     if (!mounted) return
-    setIsAnimationLoading(true)
-    const timer = setTimeout(() => {
-      setIsAnimationLoading(false)
-    }, 1000) // Show loader for 1 second when theme changes
+    
+    // Only trigger animation loading if theme actually changed
+    if (previousTheme && previousTheme !== theme) {
+      setIsAnimationLoading(true)
+      const timer = setTimeout(() => {
+        setIsAnimationLoading(false)
+      }, 1000) // Show loader for 1 second when theme changes
 
-    return () => clearTimeout(timer)
-  }, [theme, mounted])
+      return () => clearTimeout(timer)
+    }
+    
+    // Set initial theme
+    if (!previousTheme && theme) {
+      setPreviousTheme(theme)
+    }
+  }, [theme, mounted, previousTheme])
+
+  // Memoize the animation component to prevent unnecessary re-renders
+  const AnimationComponent = useMemo(() => {
+    if (!mounted) return null
+    
+    if (isAnimationLoading) {
+      return (
+        <div className="flex flex-col items-center gap-4 w-full" style={{ background: 'transparent' }}>
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Switching theme...</p>
+        </div>
+      )
+    }
+    
+    if (theme === "light") {
+      return (
+        <div className="flex items-center justify-center w-full">
+          <embed
+            src={lightThemeAnimation}
+            type="application/json"
+            className="w-full max-w-md h-96"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              backgroundColor: 'transparent'
+            }}
+          />
+        </div>
+      )
+    } else {
+      return (
+        <div className="flex items-center w-full" style={{ marginLeft: 0 }}>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: `<dotlottie-player src="${darkThemeAnimation}" background="transparent" speed="1" style="width: 400px; height: 400px; margin-left: 0;" direction="1" playMode="forward" loop autoplay></dotlottie-player>`
+            }}
+          />
+        </div>
+      )
+    }
+  }, [mounted, isAnimationLoading, theme, lightThemeAnimation, darkThemeAnimation])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -197,33 +248,7 @@ export default function LoginPage() {
             
             {/* Lottie Animation in Center */}
             <div className="flex-1 flex items-center relative">
-              {isAnimationLoading ? (
-                <div className="flex flex-col items-center gap-4 w-full" style={{ background: 'transparent' }}>
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Switching theme...</p>
-                </div>
-              ) : theme === "light" ? (
-                <div className="flex items-center justify-center w-full">
-                  <embed
-                    src={lightThemeAnimation}
-                    type="application/json"
-                    className="w-full max-w-md h-96"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      backgroundColor: 'transparent'
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center w-full" style={{ marginLeft: 0 }}>
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: `<dotlottie-player src="${darkThemeAnimation}" background="transparent" speed="1" style="width: 400px; height: 400px; margin-left: 0;" direction="1" playMode="forward" loop autoplay></dotlottie-player>`
-                    }}
-                  />
-                </div>
-              )}
+              {AnimationComponent}
             </div>
             
             <p className="text-sm text-muted-foreground">- Mohit Kumar</p>
