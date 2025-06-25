@@ -6,10 +6,11 @@ import { User } from '../../lib/types';
 import { deleteUser } from '../../lib/api';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Edit, Trash2, Eye, User as UserIcon } from 'lucide-react';
+import { Edit, Trash2, Eye, User as UserIcon, Shield } from 'lucide-react';
 import { useToast } from '../../components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { useToken } from '../../lib/token-context';
+import { UserPermissionsDialog } from '../../components/users/user-permissions-dialog';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -237,6 +238,15 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Users</h1>
         <div className="flex gap-2">
+          <UserPermissionsDialog 
+            users={filteredUsers}
+            trigger={
+              <Button variant="outline" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Manage Permissions
+              </Button>
+            }
+          />
           <Button onClick={fetchUsers} disabled={loading}>
             Refresh
           </Button>
