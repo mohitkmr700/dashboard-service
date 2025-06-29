@@ -146,8 +146,19 @@ export const Sidebar = memo(function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-2 rounded-lg p-2 hover:bg-accent">
                   <Avatar>
-                    <AvatarImage src={decodedToken?.profile_picture} alt="User" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage 
+                      src={decodedToken?.profile_picture && decodedToken.profile_picture.trim() !== '' 
+                        ? decodedToken.profile_picture 
+                        : undefined
+                      } 
+                      alt={`${decodedToken?.full_name || 'User'}'s profile`}
+                    />
+                    <AvatarFallback>
+                      {decodedToken?.full_name 
+                        ? decodedToken.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+                        : 'U'
+                      }
+                    </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{decodedToken?.full_name || 'User'}</span>
                 </button>
