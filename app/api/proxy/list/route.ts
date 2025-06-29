@@ -1,24 +1,41 @@
 import { NextResponse } from 'next/server';
-import { Task } from '../../../../lib/types';
 
 const API_DOMAIN = process.env.NEXT_PUBLIC_API_DOMAIN;
 
 interface ApiResponse {
   statusCode: number;
   message: string;
-  data: Task[];
+  data: Array<{
+    collectionId: string;
+    collectionName: string;
+    created: string;
+    deadline: string;
+    description: string;
+    email: string;
+    id: string;
+    is_done: boolean;
+    progress: number;
+    title: string;
+    updated: string;
+  }>;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
 
+  console.log('Proxy list request for email:', email);
+  console.log('API_DOMAIN:', API_DOMAIN);
+
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
 
   try {
-    const response = await fetch(`${API_DOMAIN}/list=all?email=${encodeURIComponent(email)}`, {
+    const apiUrl = `${API_DOMAIN}/list=all?email=${encodeURIComponent(email)}`;
+    console.log('Making API request to:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       headers: {
         'accept': '*/*',
         'accept-language': 'en-GB,en;q=0.9',
@@ -29,8 +46,21 @@ export async function GET(request: Request) {
       }
     });
 
+    console.log('API response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('API response not ok:', response.status, response.statusText);
+      return NextResponse.json(
+        { error: `API request failed: ${response.status}` },
+        { status: response.status }
+      );
+    }
+
     const responseData = await response.json() as ApiResponse;
-    return NextResponse.json(responseData.data);
+    console.log('API response data:', responseData);
+    
+    // Return the data array directly
+    return NextResponse.json(responseData.data || []);
   } catch (error) {
     console.error('Proxy error:', error);
     return NextResponse.json(

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "../components/ui/toaster";
-import { ThemeProvider } from "./providers";
+import { AppProviders } from "./providers";
 import { TokenProvider } from "../lib/token-context";
+import { GlobalLoadingOverlay } from "../components/global-loading-overlay";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,12 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider>
+        <AppProviders>
           <TokenProvider>
             {children}
+            <GlobalLoadingOverlay />
             <Toaster />
           </TokenProvider>
-        </ThemeProvider>
+        </AppProviders>
       </body>
     </html>
   );

@@ -11,18 +11,27 @@ import { ThemeToggle } from "../../components/theme-toggle"
 import { useToast } from "../../components/ui/use-toast"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Script from "next/script"
+import { useLoginMutation } from "../../lib/api/authSlice"
+import { useLoading } from "../../lib/loading-context"
+import { clearTokenCache } from "../../lib/token-api"
+import { store } from "../../lib/store"
+import { api } from "../../lib/api/apiSlice"
+import { authApi } from "../../lib/api/authSlice"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isAnimationLoading, setIsAnimationLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [previousTheme, setPreviousTheme] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const { theme } = useTheme()
+  const { setIsLoading, setLoadingMessage } = useLoading()
+
+  // RTK Query login mutation
+  const [login, { isLoading: isLoggingIn }] = useLoginMutation()
 
   // Define Lottie animation URLs for different themes
   const lightThemeAnimation = "https://lottie.host/embed/981e2235-19ca-4891-a2bf-ba8606b0b85e/cRjSFR2lVY.lottie"
@@ -94,34 +103,45 @@ export default function LoginPage() {
     }
   }, [mounted, isAnimationLoading, theme, lightThemeAnimation, darkThemeAnimation])
 
+  // Clear any cached data on login page load
+  useEffect(() => {
+    clearTokenCache()
+    // Clear RTK Query cache
+    store.dispatch(api.util.resetApiState());
+    store.dispatch(authApi.util.resetApiState());
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Authentication failed")
-      }
-
+      // Set loading state immediately
+      setLoadingMessage("Logging in...")
+      setIsLoading(true)
+      
+      await login({ email, password }).unwrap()
+      
+      // Clear any cached data before setting loading state
+      clearTokenCache();
+      
+      // Update loading message for transition
+      setLoadingMessage("Login successful! Loading your dashboard...")
+      
       // Use replace instead of push for faster navigation
       router.replace("/dashboard")
-    } catch (error) {
+    } catch (error: unknown) {
+      // Clear loading state on error
+      setIsLoading(false)
+      const errorMessage = error && typeof error === 'object' && 'data' in error 
+        ? (error.data as { error?: string })?.error 
+        : error instanceof Error 
+          ? error.message 
+          : "Authentication failed";
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Authentication failed",
+        description: errorMessage || "Authentication failed",
         variant: "destructive",
       })
-      setIsLoading(false)
     }
   }
 
@@ -160,61 +180,17 @@ export default function LoginPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="h-10 bg-muted/20 rounded-md animate-pulse" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                  <div className="h-10 bg-muted/20 rounded-md animate-pulse" />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
-              </form>
+                <div className="h-10 bg-muted/20 rounded-md animate-pulse" />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -229,14 +205,6 @@ export default function LoginPage() {
         type="module"
       />
       <div className="flex h-screen relative">
-        {isLoading && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Logging in...</p>
-            </div>
-          </div>
-        )}
         <div className="hidden w-1/2 bg-background lg:block">
           <div className="flex h-full flex-col justify-between p-8">
             <div>
@@ -278,7 +246,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    disabled={isLoading}
+                    disabled={isLoggingIn}
                   />
                 </div>
                 <div className="space-y-2">
@@ -290,7 +258,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      disabled={isLoading}
+                      disabled={isLoggingIn}
                     />
                     <Button
                       type="button"
@@ -298,7 +266,7 @@ export default function LoginPage() {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
+                      disabled={isLoggingIn}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -311,9 +279,9 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoading}
+                  disabled={isLoggingIn}
                 >
-                  {isLoading ? (
+                  {isLoggingIn ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Logging in...

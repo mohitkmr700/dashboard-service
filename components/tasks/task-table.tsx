@@ -5,16 +5,19 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { format, parseISO,startOfDay } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
-import { deleteTask } from "../../lib/api";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { useToast } from "../../components/ui/use-toast";
+import { 
+  useGetTasksQuery, 
+  useDeleteTaskMutation, 
+  useUpdateTaskMutation 
+} from "../../lib/api/apiSlice";
+import { TaskTableShimmer } from "../dashboard-shimmer";
 
 interface TaskTableProps {
-  tasks: Task[];
-  onDelete: (id: string) => void;
-  onEdit: (task: Task) => void;
-  onTaskUpdated: (task: Task) => void;
+  userEmail: string;
+  onTaskUpdated?: (task: Task) => void;
 }
 
 const formatDate = (dateString: string | null) => {
@@ -103,23 +106,18 @@ const getProgressColor = (progress: number) => {
   };
 };
 
-export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: TaskTableProps) {
+export function TaskTable({ userEmail, onTaskUpdated }: TaskTableProps) {
   const { toast } = useToast();
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-  // Update local tasks only when there are significant changes
-  useEffect(() => {
-    const hasSignificantChanges = initialTasks.length !== tasks.length || 
-      initialTasks.some((task, index) => task.id !== tasks[index]?.id);
-    
-    if (hasSignificantChanges) {
-      setTasks(initialTasks);
-    }
-  }, [initialTasks, tasks]);
+  // RTK Query hooks
+  const { data: tasks = [], isLoading, error, refetch } = useGetTasksQuery(userEmail, {
+    skip: !userEmail // Skip if no email is provided
+  });
+  const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   // Sort tasks by updated timestamp in descending order
   const sortedTasks = useMemo(() => {
@@ -130,6 +128,15 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
     });
   }, [tasks]);
 
+  // Don't show shimmer if no email is provided (parent is handling loading)
+  if (!userEmail) {
+    return null;
+  }
+
+  if (isLoading) {
+    return <TaskTableShimmer />;
+  }
+
   const handleDeleteClick = (id: string) => {
     setTaskToDelete(id);
   };
@@ -139,23 +146,29 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
     setEditDialogOpen(true);
   };
 
-  const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-    onTaskUpdated(updatedTask);
+  const handleTaskUpdated = async (updatedTask: Task) => {
+    try {
+      await updateTask({ id: updatedTask.id, task: updatedTask }).unwrap();
+      onTaskUpdated?.(updatedTask);
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      setIsDeleting(true);
-      await deleteTask(id);
-      // Update local state immediately
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
-      // Notify parent component
-      onDelete(id);
+      console.log('Deleting task:', id, 'for user:', userEmail);
+      const result = await deleteTask({ id, email: userEmail }).unwrap();
+      console.log('Delete result:', result);
       toast({
         title: "Success",
         description: "Task deleted successfully",
@@ -168,10 +181,25 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
         variant: "destructive",
       });
     } finally {
-      setIsDeleting(false);
       setTaskToDelete(null);
     }
   };
+
+  if (error) {
+    return (
+      <div className="rounded-md border h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Failed to load tasks</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -197,7 +225,7 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
                     <td className="p-3">
                       <div>
                         <div className="font-mono text-sm tracking-wide">
-                          {task.title.split(' ').map((word, index) => (
+                          {task.title.split(' ').map((word: string, index: number) => (
                             <span key={index}>
                               {index === 0 ? (
                                 <span className="text-base font-semibold">{word.charAt(0).toUpperCase()}</span>
@@ -248,6 +276,7 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
                           size="icon"
                           onClick={() => handleEditClick(task)}
                           className="h-7 w-7"
+                          disabled={isUpdating}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -256,6 +285,7 @@ export function TaskTable({ tasks: initialTasks, onDelete, onTaskUpdated }: Task
                           size="icon"
                           onClick={() => handleDeleteClick(task.id)}
                           className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                          disabled={isDeleting}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

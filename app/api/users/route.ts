@@ -39,7 +39,13 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    // console.log('Auth service success:', data);
+    console.log('Users API response structure:', {
+      isArray: Array.isArray(data),
+      hasData: data && typeof data === 'object',
+      keys: data ? Object.keys(data) : [],
+      dataType: typeof data,
+      dataLength: Array.isArray(data) ? data.length : 'not array'
+    });
     
     return NextResponse.json(data);
   } catch (error) {

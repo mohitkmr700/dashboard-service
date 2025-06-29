@@ -1,29 +1,61 @@
-# Dashboard Service
+# Task Management Dashboard
 
-A modern task management dashboard built with Next.js, featuring dynamic data tables, centralized authentication, and a comprehensive user management system.
+A modern, full-stack task management dashboard built with Next.js 14, TypeScript, Tailwind CSS, and RTK Query. Features real-time task management, user permissions, analytics, and a responsive design.
 
 ## 🚀 Features
 
-- **Dynamic Data Tables**: Reusable, feature-rich table component with search, sorting, and pagination
-- **Centralized Authentication**: Token management system with automatic persistence
-- **User Management**: Complete CRUD operations for users with role-based access
-- **Task Management**: Full task lifecycle management with progress tracking
-- **Modern UI**: Built with Tailwind CSS and shadcn/ui components
-- **TypeScript**: Full type safety throughout the application
-- **Responsive Design**: Mobile-friendly interface
+- **Task Management**: Create, edit, delete, and track task progress
+- **User Management**: Manage users and their permissions
+- **Real-time Analytics**: Task completion trends and efficiency metrics
+- **Role-based Access Control**: Admin, Punisher, and User roles
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Dark/Light Theme**: Toggle between themes
+- **Loading States**: Smooth loading experiences with shimmer effects
+- **Optimistic Updates**: Immediate UI feedback for better UX
+- **Centralized State Management**: RTK Query for API state management
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
-- **Date Handling**: date-fns
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **State Management**: Redux Toolkit, RTK Query
+- **UI Components**: Radix UI, Lucide React Icons
 - **Charts**: Recharts
-- **Authentication**: Custom token-based system
+- **Authentication**: JWT with HTTP-only cookies
+- **Styling**: Tailwind CSS with custom design system
 
-## 📦 Installation
+## 📁 Project Structure
+
+```
+dashboard-service/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── dashboard/         # Dashboard page
+│   ├── users/            # Users management
+│   ├── analytics/        # Analytics page
+│   ├── settings/         # Settings page
+│   ├── documents/        # Documents page
+│   ├── messages/         # Messages page
+│   └── login/            # Login page
+├── components/           # React components
+│   ├── ui/              # Reusable UI components
+│   ├── tasks/           # Task-related components
+│   ├── users/           # User-related components
+│   └── shared/          # Shared layout components
+├── lib/                 # Utilities and configurations
+│   ├── api/            # RTK Query API slices
+│   ├── types/          # TypeScript type definitions
+│   └── contexts/       # React contexts
+└── public/             # Static assets
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
 
 1. **Clone the repository**
    ```bash
@@ -43,7 +75,7 @@ A modern task management dashboard built with Next.js, featuring dynamic data ta
    
    Add your environment variables:
    ```env
-   NEXT_PUBLIC_AUTH_DOMAIN=https://auth-service.algoarena.co.in
+   NEXT_PUBLIC_AUTH_DOMAIN=http://localhost:3301
    ```
 
 4. **Run the development server**
@@ -54,340 +86,437 @@ A modern task management dashboard built with Next.js, featuring dynamic data ta
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-## 🏗️ Project Structure
+## 📚 RTK Query Integration
+
+This project uses RTK Query for efficient API state management, caching, and data synchronization.
+
+### What is RTK Query?
+
+RTK Query is a powerful data fetching and caching tool that provides:
+- **Automatic caching** and cache invalidation
+- **Loading and error states** out of the box
+- **Optimistic updates** and background refetching
+- **TypeScript support** with full type safety
+- **Normalized cache** for efficient updates
+
+### Project Structure
 
 ```
-dashboard-service/
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   │   ├── token/         # Token management
-│   │   ├── users/         # User API proxy
-│   │   └── proxy/         # Task API proxy
-│   ├── dashboard/         # Main dashboard
-│   ├── users/             # User management
-│   ├── login/             # Authentication
-│   └── layout.tsx         # Root layout
-├── components/            # Reusable components
-│   ├── ui/               # Base UI components
-│   │   ├── data-table.tsx # Dynamic data table
-│   │   └── ...           # Other UI components
-│   └── ...               # Feature components
-├── lib/                  # Utilities and configurations
-│   ├── api.ts            # API functions
-│   ├── auth.ts           # Legacy auth utilities
-│   ├── token-context.tsx # Centralized token management
-│   └── types.ts          # TypeScript definitions
-└── public/               # Static assets
+lib/
+├── store.ts                 # Redux store configuration
+├── api/
+│   ├── apiSlice.ts         # Main API slice with all endpoints
+│   └── authSlice.ts        # Authentication-specific endpoints
+└── token-context.tsx       # Centralized token management
 ```
 
-## 🔐 Authentication System
+### Available API Endpoints
 
-The application uses a centralized token management system:
+#### Tasks
+- `useGetTasksQuery(email)` - Fetch tasks for a user
+- `useCreateTaskMutation()` - Create a new task
+- `useUpdateTaskMutation()` - Update an existing task
+- `useDeleteTaskMutation()` - Delete a task
 
-### Token Provider
-- Automatically fetches and caches authentication tokens
-- Provides tokens to all components via React Context
-- Handles token persistence in localStorage
-- Manages loading and error states
+#### Users
+- `useGetUsersQuery()` - Fetch all users
+- `useDeleteUserMutation()` - Delete a user
 
-### Usage in Components
+#### Permissions
+- `useGetUserPermissionsQuery(email)` - Fetch user permissions
+- `useSubmitUserPermissionsMutation()` - Submit user permissions
+
+#### Authentication
+- `useLoginMutation()` - Login user
+- `useLogoutMutation()` - Logout user
+
+### Usage Examples
+
+#### Basic Query Usage
+
 ```tsx
-import { useToken } from '../lib/token-context';
+import { useGetTasksQuery } from '../lib/api/apiSlice';
 
-function MyComponent() {
-  const { token, isLoading, error, refreshToken } = useToken();
-  
+function TaskList({ userEmail }: { userEmail: string }) {
+  const { data: tasks, isLoading, error, refetch } = useGetTasksQuery(userEmail);
+
   if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  
-  // Use token for API calls
-}
-```
-
-### Usage in API Functions
-```tsx
-import { getStoredToken } from '../lib/token-context';
-
-const token = getStoredToken();
-// Use token in API calls
-```
-
-## 📊 Dynamic Data Table Component
-
-A powerful, reusable table component that can handle any data structure with extensive customization options.
-
-### Features
-- ✅ **Dynamic Columns**: Define columns based on your data structure
-- ✅ **Search**: Built-in search functionality across all columns
-- ✅ **Sorting**: Sortable columns with visual indicators
-- ✅ **Pagination**: Configurable pagination with page size options
-- ✅ **Actions**: Dropdown menu with custom actions for each row
-- ✅ **Loading States**: Built-in loading spinner
-- ✅ **Empty States**: Customizable empty state messages
-- ✅ **Responsive**: Mobile-friendly design
-- ✅ **TypeScript**: Full TypeScript support with generics
-
-### Basic Usage
-
-```tsx
-import { DataTable, Column, Action } from '@/components/ui/data-table';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-const columns: Column<User>[] = [
-  {
-    key: 'name',
-    header: 'Name',
-    accessorKey: 'name',
-  },
-  {
-    key: 'email',
-    header: 'Email',
-    accessorKey: 'email',
-  },
-  {
-    key: 'role',
-    header: 'Role',
-    accessorKey: 'role',
-  },
-];
-
-const actions: Action<User>[] = [
-  {
-    label: 'Edit',
-    onClick: (user) => console.log('Edit user:', user.name),
-  },
-  {
-    label: 'Delete',
-    onClick: (user) => console.log('Delete user:', user.name),
-    variant: 'destructive',
-  },
-];
-
-function MyComponent() {
-  const users: User[] = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'Admin' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'User' },
-  ];
+  if (error) return <div>Error loading tasks</div>;
 
   return (
-    <DataTable
-      data={users}
-      columns={columns}
-      actions={actions}
-      searchable={true}
-      sortable={true}
-      pagination={true}
-      pageSize={10}
-    />
+    <div>
+      {tasks?.map(task => (
+        <div key={task.id}>{task.title}</div>
+      ))}
+    </div>
   );
 }
 ```
 
-### Column Configuration
+#### Mutation Usage
 
-#### Basic Column
 ```tsx
-{
-  key: 'name',
-  header: 'Name',
-  accessorKey: 'name',
+import { useCreateTaskMutation } from '../lib/api/apiSlice';
+
+function CreateTaskForm() {
+  const [createTask, { isLoading, error }] = useCreateTaskMutation();
+
+  const handleSubmit = async (taskData) => {
+    try {
+      const result = await createTask(taskData).unwrap();
+      console.log('Task created:', result);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create Task'}
+      </button>
+    </form>
+  );
 }
 ```
 
-#### Column with Custom Cell Renderer
+#### Using Token Context
+
 ```tsx
-{
-  key: 'status',
-  header: 'Status',
-  cell: (user) => (
-    <Badge variant={user.isActive ? "default" : "secondary"}>
-      {user.isActive ? 'Active' : 'Inactive'}
-    </Badge>
-  ),
+import { useToken } from '../lib/token-context';
+
+function MyComponent() {
+  const { token, decodedToken, isLoading, error } = useToken();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  
+  return (
+    <div>
+      <p>Welcome, {decodedToken?.full_name}!</p>
+      <p>Email: {decodedToken?.email}</p>
+    </div>
+  );
 }
 ```
 
-#### Column with Alignment
+### Cache Management
+
+RTK Query automatically manages cache invalidation using tags. When you perform mutations, related queries are automatically refetched:
+
 ```tsx
-{
-  key: 'price',
-  header: 'Price',
-  accessorKey: 'price',
-  align: 'right', // 'left' | 'center' | 'right'
+// This mutation will invalidate the 'Task' cache
+const [createTask] = useCreateTaskMutation();
+
+// This query will be automatically refetched after createTask succeeds
+const { data: tasks } = useGetTasksQuery(userEmail);
+```
+
+### Error Handling
+
+```tsx
+const { data, error, isLoading } = useGetTasksQuery(userEmail);
+
+if (error) {
+  if ('status' in error) {
+    console.error('HTTP Error:', error.status);
+  } else {
+    console.error('Network Error:', error.message);
+  }
 }
 ```
 
-### Action Configuration
+### Conditional Queries
 
-#### Basic Action
+Skip queries based on conditions:
+
 ```tsx
-{
-  label: 'View',
-  onClick: (item) => console.log('View item:', item),
+const { data: user } = useGetUserQuery(userId, {
+  skip: !userId, // Skip if no userId
+});
+```
+
+## 🛣️ Adding New Routes and Pages
+
+### 1. Create a New Page
+
+Create a new directory in `app/` with a `page.tsx` file:
+
+```bash
+mkdir app/new-feature
+touch app/new-feature/page.tsx
+```
+
+### 2. Basic Page Structure
+
+```tsx
+"use client";
+
+import { PageContainer } from "../../components/page-container";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+
+export default function NewFeaturePage() {
+  return (
+    <PageContainer title="New Feature">
+      <Card>
+        <CardHeader>
+          <CardTitle>New Feature</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Your content here</p>
+        </CardContent>
+      </Card>
+    </PageContainer>
+  );
 }
 ```
 
-#### Action with Icon
-```tsx
-import { Eye, Edit, Trash2 } from 'lucide-react';
+### 3. Add Layout (Optional)
 
-{
-  label: 'View',
-  icon: <Eye className="h-4 w-4" />,
-  onClick: (item) => console.log('View item:', item),
+If you need a sidebar, create a `layout.tsx`:
+
+```tsx
+import { SharedLayout } from "../../components/shared-layout";
+
+export default function NewFeatureLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <SharedLayout>{children}</SharedLayout>;
 }
 ```
 
-#### Destructive Action
+### 4. Add to Navigation
+
+Update `lib/modules.ts` to add the new route to the sidebar:
+
 ```tsx
-{
-  label: 'Delete',
-  icon: <Trash2 className="h-4 w-4" />,
-  onClick: (item) => console.log('Delete item:', item),
-  variant: 'destructive',
+export const modules = [
+  // ... existing modules
+  {
+    id: 'new-feature',
+    label: 'New Feature',
+    href: '/new-feature',
+    icon: YourIcon, // Import from lucide-react
+  },
+];
+```
+
+## 🔧 Adding New API Endpoints
+
+### 1. Add to API Slice
+
+In `lib/api/apiSlice.ts`, add your new endpoint:
+
+```tsx
+// Query endpoint
+getNewData: builder.query<NewDataType[], void>({
+  query: () => '/api/new-data',
+  providesTags: ['NewData'],
+}),
+
+// Mutation endpoint
+createNewData: builder.mutation<NewDataType, CreateNewDataInput>({
+  query: (data) => ({
+    url: '/api/new-data',
+    method: 'POST',
+    body: data,
+  }),
+  invalidatesTags: ['NewData'],
+}),
+```
+
+### 2. Create API Route
+
+Create `app/api/new-data/route.ts`:
+
+```tsx
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Your logic here
+    const data = await fetchData();
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch data' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    // Your logic here
+    const result = await createData(body);
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to create data' },
+      { status: 500 }
+    );
+  }
 }
 ```
 
-### Props Reference
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `data` | `T[]` | - | Array of data items |
-| `columns` | `Column<T>[]` | - | Column definitions |
-| `actions` | `Action<T>[]` | `[]` | Row actions |
-| `searchable` | `boolean` | `true` | Enable search functionality |
-| `sortable` | `boolean` | `true` | Enable sorting |
-| `pagination` | `boolean` | `true` | Enable pagination |
-| `pageSize` | `number` | `10` | Items per page |
-| `pageSizeOptions` | `number[]` | `[5, 10, 20, 50]` | Available page sizes |
-| `loading` | `boolean` | `false` | Show loading state |
-| `emptyMessage` | `string` | `"No data available"` | Message when no data |
-| `className` | `string` | - | Additional CSS classes |
-| `onRowClick` | `(item: T) => void` | - | Row click handler |
-| `selectable` | `boolean` | `false` | Enable row selection |
-| `onSelectionChange` | `(items: T[]) => void` | - | Selection change handler |
-
-## 🔧 API Integration
-
-### User Management
-The application integrates with an external auth service for user management:
+### 3. Use in Components
 
 ```tsx
-import { getUsers, deleteUser, updateUser } from '../lib/api';
+import { useGetNewDataQuery, useCreateNewDataMutation } from '../lib/api/apiSlice';
 
-// Fetch all users
-const users = await getUsers();
+function NewDataComponent() {
+  const { data, isLoading } = useGetNewDataQuery();
+  const [createData] = useCreateNewDataMutation();
 
-// Delete a user
-await deleteUser(userId);
+  const handleCreate = async (newData) => {
+    try {
+      await createData(newData).unwrap();
+    } catch (error) {
+      console.error('Failed to create:', error);
+    }
+  };
 
-// Update a user
-await updateUser(userId, { full_name: 'New Name' });
+  // Your component logic
+}
 ```
 
-### Task Management
-Tasks are managed through a proxy API:
+## 🎨 UI Components
+
+The project uses a custom design system built with Radix UI and Tailwind CSS. All components are in `components/ui/`.
+
+### Available Components
+
+- **Button**: Various button styles and variants
+- **Card**: Container components with header and content
+- **Dialog**: Modal dialogs and popovers
+- **Input**: Form inputs with validation states
+- **DataTable**: Sortable, searchable data tables
+- **Badge**: Status indicators and labels
+- **Avatar**: User profile pictures with fallbacks
+- **Progress**: Progress bars and indicators
+- **Toast**: Notification system
+
+### Using Components
 
 ```tsx
-import { getTasks, createTask, updateTask, deleteTask } from '../lib/api';
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 
-// Fetch tasks for a user
-const tasks = await getTasks(userEmail);
-
-// Create a new task
-const newTask = await createTask(taskData);
-
-// Update a task
-await updateTask(taskId, updates);
-
-// Delete a task
-await deleteTask(taskId);
+function MyComponent() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>My Card</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button variant="default">Click me</Button>
+      </CardContent>
+    </Card>
+  );
+}
 ```
 
-## 🎨 Styling
+## 🔐 Authentication
 
-The application uses Tailwind CSS with a custom design system:
+The project uses JWT authentication with HTTP-only cookies for security.
 
-- **Colors**: Consistent color palette with dark/light mode support
-- **Typography**: Inter font family with proper hierarchy
-- **Components**: shadcn/ui components for consistency
-- **Responsive**: Mobile-first design approach
+### Login Flow
 
-## ♿ Accessibility
+1. User submits credentials
+2. Server validates and returns JWT token
+3. Token is stored in HTTP-only cookie
+4. Token is decoded and stored in context
+5. User is redirected to dashboard
 
-The application follows accessibility best practices:
+### Token Management
 
-- Semantic HTML structure
-- ARIA labels and roles
-- Keyboard navigation support
-- Screen reader compatibility
-- Focus management
-- Color contrast compliance
+- **Centralized**: All token operations go through `TokenProvider`
+- **Memoized**: Token API calls are cached to prevent duplicates
+- **Automatic**: Token refresh and validation happen automatically
+- **Secure**: Tokens are stored in HTTP-only cookies
 
-## 🚀 Performance
+## 🎯 Best Practices
 
-Optimizations include:
+### 1. Component Structure
+- Use TypeScript for all components
+- Implement proper loading and error states
+- Use shimmer components for loading UX
+- Follow the established naming conventions
 
-- **Memoization**: React.memo and useMemo for expensive operations
-- **Code Splitting**: Automatic route-based code splitting
-- **Image Optimization**: Next.js Image component
-- **Bundle Analysis**: Optimized bundle sizes
-- **Caching**: Efficient data caching strategies
+### 2. State Management
+- Use RTK Query for all API calls
+- Use React Context for global state
+- Implement optimistic updates where appropriate
+- Handle errors gracefully
 
-## 📝 Available Scripts
+### 3. Performance
+- Use React.memo for expensive components
+- Implement proper dependency arrays in useEffect
+- Use the skip option in RTK Query to avoid unnecessary calls
+- Optimize bundle size with dynamic imports
+
+### 4. Code Organization
+- Keep components small and focused
+- Use proper TypeScript types
+- Follow the established folder structure
+- Document complex logic with comments
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Token not loading**: Check if `TokenProvider` wraps your app
+2. **API calls failing**: Verify environment variables are set
+3. **Styling issues**: Ensure Tailwind CSS is properly configured
+4. **Type errors**: Check TypeScript types and imports
+
+### Debugging
+
+- Use Redux DevTools to inspect RTK Query cache
+- Check browser network tab for API calls
+- Use React DevTools for component debugging
+- Check console for error messages
+
+## 📝 Scripts
 
 ```bash
 # Development
 npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
+
+# Linting and Formatting
 npm run lint         # Run ESLint
+npm run lint:fix     # Fix ESLint issues
 
-# Type checking
-npm run type-check   # Check TypeScript types
-```
-
-## 🌐 Environment Variables
-
-Create a `.env.local` file with the following variables:
-
-```env
-# Authentication
-NEXT_PUBLIC_AUTH_DOMAIN=https://auth-service.algoarena.co.in
-
-# Database (if applicable)
-DATABASE_URL=your_database_url
-
-# API Keys (if applicable)
-API_KEY=your_api_key
+# Type Checking
+npm run type-check   # Run TypeScript compiler
 ```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## 🆘 Support
 
 For support and questions:
-
-- Create an issue in the repository
-- Check the documentation in the `/docs` folder
-- Review the component examples in the codebase
+- Check the documentation above
+- Review the code examples
+- Open an issue on GitHub
+- Contact the development team
 
 ---
 
-Built with ❤️ using Next.js and modern web technologies.
+Built with ❤️ using Next.js, TypeScript, and RTK Query

@@ -21,7 +21,11 @@ import {
   type UserPermissions, 
   type PermissionsPayload 
 } from '../../lib/modules';
-import { submitUserPermissions, getUserPermissions } from '../../lib/api';
+import { 
+  useSubmitUserPermissionsMutation, 
+  useGetUserPermissionsQuery
+} from '../../lib/api/apiSlice';
+import { useToken } from '../../lib/token-context';
 
 interface UserPermissionsDialogProps {
   users: User[];
@@ -36,70 +40,73 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
   const [hasChanges, setHasChanges] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loggedInUserEmail, setLoggedInUserEmail] = useState<string>('');
-  const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Get logged in user email
-  useEffect(() => {
-    const getLoggedInUser = async () => {
-      try {
-        const response = await fetch('/api/auth/token');
-        const data = await response.json();
-        if (data.decoded?.email) {
-          setLoggedInUserEmail(data.decoded.email);
-        }
-      } catch (error) {
-        console.error('Error fetching logged in user:', error);
-      }
-    };
-    getLoggedInUser();
-  }, []);
+  // Get token data from token context
+  const { decodedToken } = useToken();
 
-  const fetchLoggedInUserPermissions = async () => {
-    try {
-      const apiResponse = await getUserPermissions(loggedInUserEmail);
-      const apiPermissions = apiResponse.data;
+  // RTK Query hooks - only call when dialog is open
+  const [updatePermissions, { isLoading: isUpdating }] = useSubmitUserPermissionsMutation();
+  const { data: userPermissionsData, isLoading: isLoadingPermissions } = useGetUserPermissionsQuery(
+    selectedUser?.email || '', 
+    { skip: !selectedUser?.email || !dialogOpen }
+  );
+  
+  // Separate query for logged-in user permissions - only call when dialog is open
+  const { data: loggedInUserPermissionsData } = useGetUserPermissionsQuery(
+    loggedInUserEmail || '',
+    { skip: !loggedInUserEmail || !dialogOpen }
+  );
+
+  // Get logged in user email from token context
+  useEffect(() => {
+    if (decodedToken?.email) {
+      setLoggedInUserEmail(decodedToken.email);
+        }
+  }, [decodedToken?.email]);
+
+  // Handle logged-in user permissions for sidebar control
+  useEffect(() => {
+    if (loggedInUserPermissionsData?.data && onPermissionsUpdate && loggedInUserEmail) {
+      const apiPermissions = loggedInUserPermissionsData.data;
       
       // Extract visible modules for sidebar control
       const visibleModules = modules.filter(module => 
         apiPermissions.modules[module.id] === true
       ).map(module => module.id);
       
-      console.log('Visible modules for sidebar control:', visibleModules);
-      
       // Call the callback to update sidebar
-      if (onPermissionsUpdate) {
         onPermissionsUpdate(loggedInUserEmail, visibleModules);
       }
-      
-    } catch (error) {
-      console.error('Error fetching logged-in user permissions:', error);
-      // If no permissions exist, show all modules by default
-      if (onPermissionsUpdate) {
-        onPermissionsUpdate(loggedInUserEmail, modules.map(m => m.id));
-      }
-    }
-  };
+  }, [loggedInUserPermissionsData, loggedInUserEmail, onPermissionsUpdate]);
 
   const handleUserSelect = async (user: User) => {
     setSelectedUser(user);
     setIsSubmitted(false);
-    setLoading(true);
     
-    try {
-      // If this is the logged-in user, fetch their permissions and update sidebar
-      if (user.email === loggedInUserEmail) {
-        await fetchLoggedInUserPermissions();
+    // RTK Query will automatically fetch permissions when selectedUser changes
+  };
+
+  // Reset dialog state when it closes
+  const handleDialogChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      // Reset state when dialog closes
+      setSelectedUser(null);
+      setIsSubmitted(false);
+      setHasChanges(false);
       }
-      
-      // Try to fetch existing permissions from API
-      const apiResponse = await getUserPermissions(user.email);
-      const apiPermissions = apiResponse.data;
+  };
+
+  // Handle permissions data when it's loaded
+  useEffect(() => {
+    if (selectedUser && userPermissionsData?.data) {
+      const apiPermissions = userPermissionsData.data;
       
       // Convert API response to our internal format
       const convertedPermissions: UserPermissions = {
-        [user.id]: {}
+        [selectedUser.id]: {}
       };
       
       modules.forEach(module => {
@@ -112,7 +119,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
           import: false
         };
         
-        convertedPermissions[user.id][module.id] = {
+        convertedPermissions[selectedUser.id][module.id] = {
           visible: isVisible,
           view: modulePermissions.view,
           edit: modulePermissions.edit,
@@ -125,12 +132,12 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
       setPermissions(convertedPermissions);
       setOriginalPermissions(convertedPermissions);
       setHasChanges(false);
+    }
+  }, [selectedUser, userPermissionsData]);
       
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-      
-      // Check if it's a 404 error (no permissions exist yet)
-      if (error instanceof Error && error.message.includes('404')) {
+  // Handle error case (no permissions found)
+  useEffect(() => {
+    if (selectedUser && !isLoadingPermissions && !userPermissionsData) {
         // Use default permissions for new users
         const defaultPermissions = modules.reduce((acc, module) => ({
           ...acc,
@@ -146,111 +153,62 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
         
         setPermissions(prev => ({
           ...prev,
-          [user.id]: defaultPermissions
+        [selectedUser.id]: defaultPermissions
         }));
         
         setOriginalPermissions(prev => ({
           ...prev,
-          [user.id]: defaultPermissions
+        [selectedUser.id]: defaultPermissions
         }));
         
         setHasChanges(false);
-        
-        toast({
-          title: "Info",
-          description: "No existing permissions found. Using default permissions.",
-        });
-      } else {
-        // Fallback to default permissions if API fails
-        const defaultPermissions = modules.reduce((acc, module) => ({
-          ...acc,
-          [module.id]: {
-            visible: true,
-            view: true,
-            edit: false,
-            delete: false,
-            export: false,
-            import: false
-          }
-        }), {});
-        
-        setPermissions(prev => ({
-          ...prev,
-          [user.id]: defaultPermissions
-        }));
-        
-        setOriginalPermissions(prev => ({
-          ...prev,
-          [user.id]: defaultPermissions
-        }));
-        
-        setHasChanges(false);
-        
-        toast({
-          title: "Info",
-          description: "Using default permissions. Could not fetch existing permissions.",
-        });
-      }
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [selectedUser, isLoadingPermissions, userPermissionsData]);
 
   const toggleModuleVisibility = (moduleId: string) => {
     if (!selectedUser) return;
     
-    const newPermissions = {
-      ...permissions,
+    setPermissions(prev => ({
+      ...prev,
       [selectedUser.id]: {
-        ...permissions[selectedUser.id],
+        ...prev[selectedUser.id],
         [moduleId]: {
-          ...permissions[selectedUser.id][moduleId],
-          visible: !permissions[selectedUser.id][moduleId]?.visible
+          ...prev[selectedUser.id][moduleId],
+          visible: !prev[selectedUser.id][moduleId].visible
         }
       }
-    };
-    
-    setPermissions(newPermissions);
-    checkForChanges(newPermissions);
+    }));
   };
 
   const togglePermission = (moduleId: string, permissionType: string) => {
     if (!selectedUser) return;
     
-    const newPermissions = {
-      ...permissions,
+    setPermissions(prev => ({
+      ...prev,
       [selectedUser.id]: {
-        ...permissions[selectedUser.id],
+        ...prev[selectedUser.id],
         [moduleId]: {
-          ...permissions[selectedUser.id][moduleId],
-          [permissionType]: !permissions[selectedUser.id][moduleId]?.[permissionType as keyof ModulePermission]
+          ...prev[selectedUser.id][moduleId],
+          [permissionType]: !prev[selectedUser.id][moduleId][permissionType as keyof ModulePermission]
         }
       }
-    };
-    
-    setPermissions(newPermissions);
-    checkForChanges(newPermissions);
+    }));
   };
 
   const checkForChanges = (newPermissions: UserPermissions) => {
-    if (!selectedUser) return;
+    if (!selectedUser) return false;
     
+    const original = originalPermissions[selectedUser.id];
     const current = newPermissions[selectedUser.id];
-    const original = originalPermissions[selectedUser.id] || {};
-    const changed = Object.keys(current).some(moduleId => {
-      const currentModule = current[moduleId];
-      const originalModule = original[moduleId];
-      return (
-        currentModule?.visible !== originalModule?.visible ||
-        currentModule?.view !== originalModule?.view ||
-        currentModule?.edit !== originalModule?.edit ||
-        currentModule?.delete !== originalModule?.delete ||
-        currentModule?.export !== originalModule?.export ||
-        currentModule?.import !== originalModule?.import
-      );
-    });
-    setHasChanges(changed);
+    
+    if (!original || !current) return false;
+    
+    return JSON.stringify(original) !== JSON.stringify(current);
   };
+
+  useEffect(() => {
+    setHasChanges(checkForChanges(permissions));
+  }, [permissions, selectedUser, checkForChanges]);
 
   const getModulePermission = (moduleId: string): ModulePermission => {
     if (!selectedUser || !permissions[selectedUser.id]) {
@@ -263,6 +221,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
         import: false
       };
     }
+    
     return permissions[selectedUser.id][moduleId] || {
       visible: true,
       view: true,
@@ -274,10 +233,9 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
   };
 
   const createPermissionsPayload = (): PermissionsPayload | null => {
-    if (!selectedUser) return null;
-
-    const userPermissions = permissions[selectedUser.id];
-    if (!userPermissions) return null;
+    if (!selectedUser || !permissions[selectedUser.id]) {
+      return null;
+    }
 
     const modulesData: { [key: string]: boolean } = {};
     const permissionsData: { [key: string]: {
@@ -289,8 +247,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
     }} = {};
 
     modules.forEach(module => {
-      const modulePermission = userPermissions[module.id];
-      if (modulePermission) {
+      const modulePermission = getModulePermission(module.id);
         modulesData[module.id] = modulePermission.visible;
         
         if (modulePermission.visible) {
@@ -301,7 +258,6 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
             export: modulePermission.export,
             import: modulePermission.import
           };
-        }
       }
     });
 
@@ -337,8 +293,8 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
     console.log('Visible Modules for', selectedUser.email, ':', visibleModules.map(m => m.label));
     
     try {
-      // Submit permissions to API
-      const response = await submitUserPermissions(payload);
+      // Submit permissions using RTK Query
+      const response = await updatePermissions(payload).unwrap();
       
       console.log('API Response:', response);
       
@@ -362,6 +318,11 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
         const visibleModuleIds = visibleModules.map(m => m.id);
         if (onPermissionsUpdate) {
           onPermissionsUpdate(selectedUser.email, visibleModuleIds);
+          
+          // Force a refresh of the permissions API to ensure consistency
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('permissionsRefresh'));
+          }, 500);
         }
       }
       
@@ -391,7 +352,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -449,9 +410,9 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
                       </p>
                     </div>
                     {hasChanges && !isSubmitted && (
-                      <Button onClick={handleSubmit} className="flex items-center gap-2">
+                      <Button onClick={handleSubmit} disabled={isUpdating} className="flex items-center gap-2">
                         <Check className="h-4 w-4" />
-                        Save Changes
+                        {isUpdating ? 'Saving...' : 'Save Changes'}
                       </Button>
                     )}
                     {isSubmitted && (
@@ -463,7 +424,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
                   </div>
                 </div>
                 
-                {loading ? (
+                {isLoadingPermissions ? (
                   <div className="flex items-center justify-center flex-1">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>

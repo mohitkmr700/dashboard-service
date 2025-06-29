@@ -1,126 +1,60 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ThemeToggle } from "./theme-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import {
+import React, { memo, useCallback, useMemo } from 'react';
+import { useSidebar } from '../lib/sidebar-context';
+import { useToken } from '../lib/token-context';
+import { useLoading } from '../lib/loading-context';
+import { Button } from './ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+} from './ui/dropdown-menu';
+import { LogOut, RefreshCw } from 'lucide-react';
+import { modules } from '../lib/modules';
+import { useLogoutMutation } from '../lib/api/authSlice';
+import { store } from '../lib/store';
+import { api } from '../lib/api/apiSlice';
+import { authApi } from '../lib/api/authSlice';
+import { clearTokenCache } from '../lib/token-api';
 import { useToast } from "./ui/use-toast";
-import { useEffect, useState } from "react";
-import { useToken } from "../lib/token-context";
-import { modules } from "../lib/modules";
-import { getUserPermissions } from "../lib/api";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { SidebarShimmer } from "./sidebar-shimmer";
+import { ThemeToggle } from "./theme-toggle";
 
-interface DecodedToken {
-  profile_picture: string;
-  full_name: string;
-  email: string;
-}
-
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>();
-  const [visibleModules, setVisibleModules] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const { clearToken } = useToken();
+  const { decodedToken, visibleModules, isLoading, refreshPermissions } = useSidebar();
+  const { setIsLoggingOut, setLoadingMessage } = useLoading();
+  const { token } = useToken();
 
-  // Fetch permissions from API on mount
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        // Get the logged-in user's email from token
-        const tokenResponse = await fetch('/api/auth/token');
-        const tokenData = await tokenResponse.json();
-        const userEmail = tokenData.decoded?.email;
-        
-        if (userEmail) {
-          const apiResponse = await getUserPermissions(userEmail);
-          const apiPermissions = apiResponse.data;
-          
-          // Extract visible modules for sidebar control
-          const visibleModuleIds = modules.filter(module => 
-            apiPermissions.modules[module.id] === true
-          ).map(module => module.id);
-          
-          console.log('Fetched permissions from API for', userEmail, ':', visibleModuleIds);
-          
-          setVisibleModules(visibleModuleIds);
-          
-          // Store in localStorage for persistence
-          localStorage.setItem('visibleModules', JSON.stringify(visibleModuleIds));
-        } else {
-          console.error('No user email found in token');
-          // Default to all modules if no email
-          setVisibleModules(modules.map(m => m.id));
-        }
-      } catch (error) {
-        console.error('Error fetching permissions from API:', error);
-        
-        // Fallback to localStorage if API fails
-        const storedModules = localStorage.getItem('visibleModules');
-        if (storedModules) {
-          try {
-            const parsedModules = JSON.parse(storedModules);
-            setVisibleModules(parsedModules);
-          } catch (error) {
-            console.error('Error parsing stored modules:', error);
-            // Default to all modules if parsing fails
-            setVisibleModules(modules.map(m => m.id));
-          }
-        } else {
-          // Default to all modules if no stored data
-          setVisibleModules(modules.map(m => m.id));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  // RTK Query hooks
+  const [logout] = useLogoutMutation();
 
-    // Fetch permissions after a short delay to ensure token is loaded
-    const timer = setTimeout(() => {
-      fetchPermissions();
-    }, 100);
+  // Memoize filtered modules to prevent unnecessary re-renders
+  const filteredModules = useMemo(() => {
+    return modules.filter(module => visibleModules.includes(module.id));
+  }, [visibleModules]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Listen for permission updates
-  useEffect(() => {
-    const handlePermissionsUpdate = (event: CustomEvent) => {
-      const { visibleModules: newVisibleModules } = event.detail;
-      setVisibleModules(newVisibleModules);
-      console.log('Sidebar updated with new permissions:', newVisibleModules);
-    };
-
-    window.addEventListener('permissionsUpdated', handlePermissionsUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('permissionsUpdated', handlePermissionsUpdate as EventListener);
-    };
-  }, []);
-
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      setIsLoggingOut(true);
+      setLoadingMessage("Logging out...");
+      
+      await logout().unwrap();
 
-      if (!response.ok) {
-        throw new Error('Logout failed');
-      }
-
-      // Clear token using context
+      // Clear all states
       clearToken();
+      clearTokenCache();
+      
+      // Clear RTK Query cache
+      store.dispatch(api.util.resetApiState());
+      store.dispatch(authApi.util.resetApiState());
       
       // Clear stored permissions on logout
       localStorage.removeItem('visibleModules');
@@ -134,65 +68,31 @@ export function Sidebar() {
       // Redirect to login page
       window.location.href = '/login';
     } catch (error) {
+      setIsLoggingOut(false);
       toast({
         title: "Error",
         description: `Failed to logout. Please try again. ${error}`,
         variant: "destructive",
       });
     }
-  };
+  }, [logout, clearToken, toast, setIsLoggingOut, setLoadingMessage]);
 
-  useEffect(() => {
-    const getToken = async () => {
-      const response = await fetch('/api/auth/token');
-      const data = await response.json();
-      if (data.decoded) {
-        setDecodedToken(data.decoded);
-      }
-    }
-    getToken();
-  }, []);
+  const handleRefreshPermissions = useCallback(() => {
+    refreshPermissions();
+    toast({
+      title: "Refreshing",
+      description: "Permissions refreshed",
+    });
+  }, [refreshPermissions, toast]);
 
-  // Filter modules based on permissions
-  const filteredModules = modules.filter(module => 
-    visibleModules.includes(module.id)
-  );
+  // Show shimmer if loading, not authenticated, or no token
+  if (isLoading || !decodedToken?.email || !token) {
+    return <SidebarShimmer />;
+  }
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-64 flex-col border-r bg-background">
-        {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b px-6">
-          <h1 className="text-xl font-bold">Dashboard</h1>
-          <ThemeToggle />
-        </div>
-
-        {/* Loading Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Loading permissions...</p>
-            </div>
-          </div>
-        </nav>
-
-        {/* User Profile */}
-        <div className="border-t p-4">
-          <div className="flex items-center space-x-3">
-            <div className="mt-auto">
-              <div className="flex w-full items-center gap-2 rounded-lg p-2">
-                <Avatar>
-                  <AvatarImage src={decodedToken?.profile_picture || 'U'} alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">{decodedToken?.full_name || 'User'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Additional check: if we don't have valid authentication, don't render
+  if (!decodedToken?.email) {
+    return <SidebarShimmer />;
   }
 
   return (
@@ -200,28 +100,42 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b px-6">
         <h1 className="text-xl font-bold">Dashboard</h1>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefreshPermissions}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
-        {filteredModules.map((module) => {
-          const isActive = pathname === module.href;
-          return (
-            <Link
-              key={module.href}
-              href={module.href}
-              className={`flex items-center space-x-3 rounded-lg px-3 py-2 transition-colors ${
-                isActive
-                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-              }`}
-            >
-              <module.icon className="h-5 w-5" />
-              <span>{module.label}</span>
-            </Link>
-          );
-        })}
+        {filteredModules.length === 0 ? (
+          <div className="text-muted-foreground text-sm px-2 py-4">No modules available</div>
+        ) : (
+          filteredModules.map((module) => {
+            const isActive = pathname === module.href;
+            return (
+              <Link
+                key={module.href}
+                href={module.href}
+                className={`flex items-center space-x-3 rounded-lg px-3 py-2 transition-colors ${
+                  isActive
+                    ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                }`}
+              >
+                <module.icon className="h-5 w-5" />
+                <span>{module.label}</span>
+              </Link>
+            );
+          })
+        )}
       </nav>
 
       {/* User Profile */}
@@ -232,7 +146,7 @@ export function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-2 rounded-lg p-2 hover:bg-accent">
                   <Avatar>
-                    <AvatarImage src={decodedToken?.profile_picture || 'U'} alt="User" />
+                    <AvatarImage src={decodedToken?.profile_picture} alt="User" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{decodedToken?.full_name || 'User'}</span>
@@ -250,4 +164,4 @@ export function Sidebar() {
       </div>
     </div>
   );
-} 
+}); 

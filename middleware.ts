@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getAccessToken } from './lib/cookies'
 
 // Add paths that should be accessible without authentication
 const publicPaths = [
@@ -11,6 +10,16 @@ const publicPaths = [
   '/_next',
   '/favicon.ico',
   '/public',
+]
+
+// Define sidebar routes that require authentication
+const sidebarRoutes = [
+  '/dashboard',
+  '/analytics', 
+  '/users',
+  '/documents',
+  '/messages',
+  '/settings'
 ]
 
 // Disable console.log in production environments
@@ -50,28 +59,78 @@ if (process.env.NODE_ENV === 'production') {
   };
 }
 
+// Function to validate token (basic validation)
+function isValidToken(token: string): boolean {
+  if (!token) return false;
+  
+  try {
+    // Basic JWT structure validation (header.payload.signature)
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
+    // Check if token is not expired (basic check)
+    const payload = JSON.parse(atob(parts[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    if (payload.exp && payload.exp < currentTime) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Function to check if path is a sidebar route
+function isSidebarRoute(pathname: string): boolean {
+  return sidebarRoutes.some(route => pathname === route || pathname.startsWith(route + '/'));
+}
+
+// Function to check if path is public
+function isPublicPath(pathname: string): boolean {
+  return publicPaths.some(path => pathname.startsWith(path));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Get the access_token from cookies using NextRequest
+  const accessToken = request.cookies.get('access_token')?.value
+
   // Check if the path is public
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+  const isPublic = isPublicPath(pathname)
+  const isSidebar = isSidebarRoute(pathname)
 
-  // Get the access_token from cookies
-  const accessToken = await getAccessToken()
+  // Debug log for authentication flow
+  if (isSidebar) {
+    console.log(`Middleware: ${pathname} - Token: ${accessToken ? 'Present' : 'Missing'} - Valid: ${accessToken ? isValidToken(accessToken) : 'N/A'}`);
+  }
 
-  // If accessing a protected path without a token, redirect to login
-  if (!isPublicPath && !accessToken) {
+  // If accessing a sidebar route without a token, redirect to login
+  if (isSidebar && !accessToken) {
+    console.log(`Middleware: Redirecting ${pathname} to login (no token)`);
     const url = new URL('/login', request.url)
     url.searchParams.set('from', pathname)
     return NextResponse.redirect(url)
   }
 
-  // If accessing login page with a token, redirect to dashboard
-  if (pathname === '/login' && accessToken) {
+  // If accessing a sidebar route with an invalid token, redirect to login
+  if (isSidebar && accessToken && !isValidToken(accessToken)) {
+    console.log(`Middleware: Redirecting ${pathname} to login (invalid token)`);
+    const url = new URL('/login', request.url)
+    url.searchParams.set('from', pathname)
+    url.searchParams.set('error', 'invalid_token')
+    return NextResponse.redirect(url)
+  }
+
+  // If accessing login page with a valid token, redirect to dashboard
+  if (pathname === '/login' && accessToken && isValidToken(accessToken)) {
+    console.log(`Middleware: Redirecting login to dashboard (valid token)`);
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // For API routes, add CORS headers
+  // For API routes, add CORS headers and validate token for protected routes
   if (pathname.startsWith('/api/')) {
     const response = NextResponse.next()
     
@@ -84,6 +143,30 @@ export async function middleware(request: NextRequest) {
       'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     )
 
+    // For protected API routes, validate token
+    const isProtectedApiRoute = !pathname.startsWith('/api/auth/') && 
+                               !pathname.startsWith('/api/_next/') &&
+                               pathname !== '/api/health';
+    
+    if (isProtectedApiRoute && (!accessToken || !isValidToken(accessToken))) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Invalid or missing token' },
+        { status: 401 }
+      )
+    }
+
+    return response
+  }
+
+  // For sidebar routes, ensure the response includes cache control headers
+  if (isSidebar) {
+    const response = NextResponse.next()
+    
+    // Add cache control headers to prevent stale data
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
     return response
   }
 

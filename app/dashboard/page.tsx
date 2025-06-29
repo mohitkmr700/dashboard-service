@@ -1,106 +1,121 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Task } from '../../lib/types';
-import { getTasks } from '../../lib/api';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
-import { Progress } from '../../components/ui/progress';
 import { TaskTable } from '../../components/tasks/task-table';
 import { DashboardStats } from '../../components/DashboardStats';
 import CreateTaskDialog from '../../components/tasks/create-task-dialog';
-
-interface DecodedToken {
-  profile_picture: string | 'U';
-  full_name: string | 'User';
-  email: string | 'notworking@gmail.com';
-}
+import { useGetTasksQuery } from '../../lib/api/apiSlice';
+import { useLoading } from '../../lib/loading-context';
+import { DashboardShimmer } from '../../components/dashboard-shimmer';
+import { useToken } from '../../lib/token-context';
+import { useSidebar } from '../../lib/sidebar-context';
 
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>();
+  const { setIsLoading, setLoadingMessage } = useLoading();
 
-  const fetchTasks = async (email: string) => {
-    try {
-      setLoading(true);
-      const data = await getTasks(email);
-      setTasks(data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch tasks');
-      console.error('Error fetching tasks:', err);
-    } finally {
-      setLoading(false);
+  // Get token data from token context
+  const { decodedToken, isLoading: isTokenLoading, token } = useToken();
+  
+  // Get sidebar data to ensure permissions are loaded
+  const { isLoading: isSidebarLoading } = useSidebar();
+
+  // RTK Query hook for tasks - only call when we have a valid token and email
+  const { data: tasks = [], isLoading: isTasksQueryLoading, error, refetch } = useGetTasksQuery(
+    decodedToken?.email || '', 
+    { 
+      skip: !decodedToken?.email || !token || isTokenLoading || isSidebarLoading 
     }
-  };
+  );
+
+  // Check if we're fully authenticated and all data is loaded
+  const isFullyAuthenticated = !isTokenLoading && !!token && !!decodedToken?.email;
+  const isAllDataLoaded = !isSidebarLoading && !isTasksQueryLoading;
+  const isPageReady = isFullyAuthenticated && isAllDataLoaded;
+
+  // Check if we're still loading anything
+  const isPageLoading = isTokenLoading || isSidebarLoading || (isFullyAuthenticated && isTasksQueryLoading);
 
   useEffect(() => {
-    const getToken = async () => {
-      try {
-        const response = await fetch('/api/auth/token');
-        const data = await response.json();
-        if (data.decoded) {
-          setDecodedToken(data.decoded);
-        }
-      } catch (error) {
-        console.error('Error getting token:', error);
-      }
+    // If no token and token loading is done, redirect to login
+    if (!isTokenLoading && !token) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // If we have token but no decoded token, wait
+    if (token && !decodedToken?.email) {
+      setLoadingMessage("Validating authentication...");
+      return;
+    }
+
+    // If we have decoded token, start loading dashboard
+    if (decodedToken?.email) {
+      setLoadingMessage("Loading your dashboard...");
+    }
+  }, [decodedToken, isTokenLoading, token, setLoadingMessage]);
+
+  // Clear loading state once all data is loaded
+  useEffect(() => {
+    if (isPageReady && !error) {
+      setLoadingMessage("Dashboard ready!");
+      // Clear loading state immediately without delay
+      setIsLoading(false);
+    }
+  }, [isPageReady, error, setIsLoading, setLoadingMessage]);
+
+  // Fallback: Clear loading state after a maximum time to prevent getting stuck
+  useEffect(() => {
+    if (isFullyAuthenticated) {
+      const maxLoadingTime = 8000; // 8 seconds max
+      const timer = setTimeout(() => {
+        console.log('Dashboard: Force clearing loading state after timeout');
+        setIsLoading(false);
+      }, maxLoadingTime);
+      return () => clearTimeout(timer);
+    }
+  }, [isFullyAuthenticated, setIsLoading]);
+
+  // Cleanup effect to reset loading state on unmount
+  useEffect(() => {
+    return () => {
+      // Reset loading state when component unmounts
+      setIsLoading(false);
     };
-    getToken();
-  }, []);
-
-  useEffect(() => {
-    if (decodedToken) {
-      fetchTasks(decodedToken.email);
-    }
-  }, [decodedToken]);
+  }, [setIsLoading]);
 
   const handleTaskCreated = () => {
-    // Refresh tasks after creating a new one
-    if (decodedToken) {
-      fetchTasks(decodedToken.email);
-    }
-  };
-
-  const handleDeleteTask = (id: string) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
+    // RTK Query will automatically refetch tasks when cache is invalidated
+    refetch();
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
+    // RTK Query will automatically update the cache
+    console.log('Task updated:', updatedTask);
   };
 
   // Memoize the stats to prevent unnecessary recalculations
   const stats = useMemo(() => ({
     totalTasks: tasks.length,
-    completedTasks: tasks.filter(task => task.is_done).length,
-    inProgressTasks: tasks.filter(task => !task.is_done && task.progress > 0).length,
-    pendingTasks: tasks.filter(task => !task.is_done && task.progress === 0).length,
+    completedTasks: tasks.filter((task: Task) => task.is_done).length,
+    inProgressTasks: tasks.filter((task: Task) => !task.is_done && task.progress > 0).length,
+    pendingTasks: tasks.filter((task: Task) => !task.is_done && task.progress === 0).length,
   }), [tasks]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Progress value={33} className="w-48 mb-4" />
-          <p className="text-muted-foreground">Loading tasks...</p>
-        </div>
-      </div>
-    );
+  // Show shimmer if anything is still loading or not authenticated
+  if (isPageLoading || !isFullyAuthenticated) {
+    return <DashboardShimmer />;
   }
 
+  // Show error if tasks failed to load
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
+          <p className="text-destructive mb-4">Failed to fetch tasks</p>
           <button
-            onClick={() => fetchTasks(decodedToken?.email || 'notworking@gmail.com')}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry
@@ -108,6 +123,11 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+
+  // Only render content if we're fully ready and have data
+  if (!isPageReady) {
+    return <DashboardShimmer />;
   }
 
   return (
@@ -127,9 +147,7 @@ export default function DashboardPage() {
 
           <div className="flex-1 overflow-hidden">
             <TaskTable 
-              tasks={tasks} 
-              onDelete={handleDeleteTask} 
-              onEdit={() => {}} 
+              userEmail={decodedToken?.email || ''}
               onTaskUpdated={handleTaskUpdated}
             />
           </div>

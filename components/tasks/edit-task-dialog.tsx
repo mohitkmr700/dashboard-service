@@ -1,22 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Task } from "../../lib/types";
-import { Button } from "../ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import { Checkbox } from "../ui/checkbox";
-import { toast } from "sonner";
-import { Slider } from "../ui/slider";
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Slider } from '../ui/slider';
+import { Checkbox } from '../ui/checkbox';
+import { useUpdateTaskMutation } from '../../lib/api/apiSlice';
+import { useToast } from '../ui/use-toast';
+import { Task } from '../../lib/types';
 import { format, parseISO, startOfDay } from 'date-fns';
 
 interface EditTaskDialogProps {
@@ -32,8 +26,11 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
   const [progress, setProgress] = useState(0);
   const [deadline, setDeadline] = useState('');
   const [is_done, setIsDone] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [previousProgress, setPreviousProgress] = useState(0);
+  const { toast } = useToast();
+
+  // RTK Query mutation
+  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   // Get today's date in YYYY-MM-DD format
   const today = format(startOfDay(new Date()), 'yyyy-MM-dd');
@@ -68,15 +65,10 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
     e.preventDefault();
     if (!task) return;
 
-    setLoading(true);
     try {
-      const response = await fetch('/api/proxy/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const updatedTask = await updateTask({
           id: task.id,
+        task: {
           title,
           description,
           progress,
@@ -84,23 +76,22 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
           is_done: is_done ? true : false, // Explicitly set to false when not done
           completed_at: is_done ? new Date().toISOString() : null,
           email: task.email
-        }),
+        }
+      }).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Task updated successfully');
-        onTaskUpdated(data);
+      onTaskUpdated(updatedTask);
         onOpenChange(false);
-      } else {
-        toast.error(data.message || 'Failed to update task');
-      }
     } catch (error) {
       console.error('Error updating task:', error);
-      toast.error('Failed to update task');
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
     }
   };
 
@@ -171,8 +162,8 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save changes'}
+            <Button type="submit" disabled={isUpdating}>
+              {isUpdating ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
         </form>

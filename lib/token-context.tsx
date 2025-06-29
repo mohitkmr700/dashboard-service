@@ -1,9 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getToken, getDecodedToken, clearTokenCache } from './token-api';
+
+interface DecodedToken {
+  profile_picture: string;
+  full_name: string;
+  email: string;
+}
 
 interface TokenContextType {
   token: string | null;
+  decodedToken: DecodedToken | null;
   isLoading: boolean;
   error: string | null;
   refreshToken: () => Promise<void>;
@@ -12,47 +20,38 @@ interface TokenContextType {
 
 const TokenContext = createContext<TokenContextType | undefined>(undefined);
 
-export function TokenProvider({ children }: { children: React.ReactNode }) {
+export function TokenProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [decodedToken, setDecodedToken] = useState<DecodedToken | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchToken = async () => {
+  const fetchTokenData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // Call the correct token API endpoint
-      const response = await fetch('/api/auth/token', {
-        method: 'GET',
-        credentials: 'include', // Include cookies
-      });
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Invalid response format from server');
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch token: ${response.status}`);
-      }
-
-      const data = await response.json();
+      // Fetch both token and decoded data in parallel
+      const [tokenData, decodedData] = await Promise.all([
+        getToken(),
+        getDecodedToken()
+      ]);
       
-      if (data.token) {
-        setToken(data.token);
+      setToken(tokenData);
+      setDecodedToken(decodedData);
+      
+      if (tokenData) {
         // Store in localStorage for persistence
-        localStorage.setItem('access_token', data.token);
+        localStorage.setItem('access_token', tokenData);
       } else {
         // No token is a valid state, not an error
-        setToken(null);
         localStorage.removeItem('access_token');
       }
     } catch (err) {
-      console.error('Error fetching token:', err);
+      console.error('Error fetching token data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch token');
       setToken(null);
+      setDecodedToken(null);
       localStorage.removeItem('access_token');
     } finally {
       setIsLoading(false);
@@ -60,13 +59,17 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshToken = async () => {
-    await fetchToken();
+    // Clear cache and fetch fresh token
+    clearTokenCache();
+    await fetchTokenData();
   };
 
   const clearToken = () => {
     setToken(null);
+    setDecodedToken(null);
     setError(null);
     localStorage.removeItem('access_token');
+    clearTokenCache();
   };
 
   useEffect(() => {
@@ -74,15 +77,36 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
     const storedToken = localStorage.getItem('access_token');
     if (storedToken) {
       setToken(storedToken);
-      setIsLoading(false);
+      // Still fetch decoded data to ensure it's current
+      getDecodedToken().then(decoded => {
+        setDecodedToken(decoded);
+        setIsLoading(false);
+      }).catch(() => {
+        // If decoded token fetch fails, clear everything
+        clearToken();
+        setIsLoading(false);
+      });
     } else {
       // Fetch token from API if not in localStorage
-      fetchToken();
+      fetchTokenData();
     }
+  }, []);
+
+  // Listen for storage changes (for logout from other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'access_token' && e.newValue === null) {
+        clearToken();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const value: TokenContextType = {
     token,
+    decodedToken,
     isLoading,
     error,
     refreshToken,
