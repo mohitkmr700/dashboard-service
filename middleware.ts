@@ -13,6 +13,43 @@ const publicPaths = [
   '/public',
 ]
 
+// Disable console.log in production environments
+if (process.env.NODE_ENV === 'production') {
+  // Override console.log to prevent logging in production
+  const originalConsoleLog = console.log;
+  console.log = (...args: any[]) => {
+    // Only log if explicitly allowed or in development
+    if (process.env.NODE_ENV === 'development' || process.env.ALLOW_CONSOLE_LOG === 'true') {
+      originalConsoleLog.apply(console, args);
+    }
+  };
+  
+  // Also disable other console methods in production
+  console.warn = (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development' || process.env.ALLOW_CONSOLE_LOG === 'true') {
+      console.warn.apply(console, args);
+    }
+  };
+  
+  console.error = (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development' || process.env.ALLOW_CONSOLE_LOG === 'true') {
+      console.error.apply(console, args);
+    }
+  };
+  
+  console.info = (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development' || process.env.ALLOW_CONSOLE_LOG === 'true') {
+      console.info.apply(console, args);
+    }
+  };
+  
+  console.debug = (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development' || process.env.ALLOW_CONSOLE_LOG === 'true') {
+      console.debug.apply(console, args);
+    }
+  };
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
