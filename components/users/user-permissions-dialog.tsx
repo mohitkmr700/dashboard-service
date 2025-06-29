@@ -21,19 +21,23 @@ import {
   type UserPermissions, 
   type PermissionsPayload 
 } from '../../lib/modules';
+import { submitUserPermissions, getUserPermissions } from '../../lib/api';
 
 interface UserPermissionsDialogProps {
   users: User[];
   trigger: React.ReactNode;
+  onPermissionsUpdate?: (userEmail: string, visibleModules: string[]) => void;
 }
 
-export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogProps) {
+export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: UserPermissionsDialogProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>({});
   const [originalPermissions, setOriginalPermissions] = useState<UserPermissions>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loggedInUserEmail, setLoggedInUserEmail] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Get logged in user email
@@ -52,51 +56,143 @@ export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogP
     getLoggedInUser();
   }, []);
 
-  const handleUserSelect = (user: User) => {
+  const fetchLoggedInUserPermissions = async () => {
+    try {
+      const apiResponse = await getUserPermissions(loggedInUserEmail);
+      const apiPermissions = apiResponse.data;
+      
+      // Extract visible modules for sidebar control
+      const visibleModules = modules.filter(module => 
+        apiPermissions.modules[module.id] === true
+      ).map(module => module.id);
+      
+      console.log('Visible modules for sidebar control:', visibleModules);
+      
+      // Call the callback to update sidebar
+      if (onPermissionsUpdate) {
+        onPermissionsUpdate(loggedInUserEmail, visibleModules);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching logged-in user permissions:', error);
+      // If no permissions exist, show all modules by default
+      if (onPermissionsUpdate) {
+        onPermissionsUpdate(loggedInUserEmail, modules.map(m => m.id));
+      }
+    }
+  };
+
+  const handleUserSelect = async (user: User) => {
     setSelectedUser(user);
     setIsSubmitted(false);
-    // Initialize permissions for this user if not already done
-    if (!permissions[user.id]) {
-      const initialPermissions = modules.reduce((acc, module) => ({
-        ...acc,
-        [module.id]: {
-          visible: true,
-          view: true,
+    setLoading(true);
+    
+    try {
+      // If this is the logged-in user, fetch their permissions and update sidebar
+      if (user.email === loggedInUserEmail) {
+        await fetchLoggedInUserPermissions();
+      }
+      
+      // Try to fetch existing permissions from API
+      const apiResponse = await getUserPermissions(user.email);
+      const apiPermissions = apiResponse.data;
+      
+      // Convert API response to our internal format
+      const convertedPermissions: UserPermissions = {
+        [user.id]: {}
+      };
+      
+      modules.forEach(module => {
+        const isVisible = apiPermissions.modules[module.id] || false;
+        const modulePermissions = apiPermissions.permissions[module.id] || {
+          view: false,
           edit: false,
           delete: false,
           export: false,
           import: false
-        }
-      }), {});
-      
-      setPermissions(prev => ({
-        ...prev,
-        [user.id]: initialPermissions
-      }));
-      
-      setOriginalPermissions(prev => ({
-        ...prev,
-        [user.id]: initialPermissions
-      }));
-      
-      setHasChanges(false);
-    } else {
-      // Check if there are changes compared to original
-      const current = permissions[user.id];
-      const original = originalPermissions[user.id] || {};
-      const changed = Object.keys(current).some(moduleId => {
-        const currentModule = current[moduleId];
-        const originalModule = original[moduleId];
-        return (
-          currentModule?.visible !== originalModule?.visible ||
-          currentModule?.view !== originalModule?.view ||
-          currentModule?.edit !== originalModule?.edit ||
-          currentModule?.delete !== originalModule?.delete ||
-          currentModule?.export !== originalModule?.export ||
-          currentModule?.import !== originalModule?.import
-        );
+        };
+        
+        convertedPermissions[user.id][module.id] = {
+          visible: isVisible,
+          view: modulePermissions.view,
+          edit: modulePermissions.edit,
+          delete: modulePermissions.delete,
+          export: modulePermissions.export,
+          import: modulePermissions.import
+        };
       });
-      setHasChanges(changed);
+      
+      setPermissions(convertedPermissions);
+      setOriginalPermissions(convertedPermissions);
+      setHasChanges(false);
+      
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+      
+      // Check if it's a 404 error (no permissions exist yet)
+      if (error instanceof Error && error.message.includes('404')) {
+        // Use default permissions for new users
+        const defaultPermissions = modules.reduce((acc, module) => ({
+          ...acc,
+          [module.id]: {
+            visible: true,
+            view: true,
+            edit: false,
+            delete: false,
+            export: false,
+            import: false
+          }
+        }), {});
+        
+        setPermissions(prev => ({
+          ...prev,
+          [user.id]: defaultPermissions
+        }));
+        
+        setOriginalPermissions(prev => ({
+          ...prev,
+          [user.id]: defaultPermissions
+        }));
+        
+        setHasChanges(false);
+        
+        toast({
+          title: "Info",
+          description: "No existing permissions found. Using default permissions.",
+        });
+      } else {
+        // Fallback to default permissions if API fails
+        const defaultPermissions = modules.reduce((acc, module) => ({
+          ...acc,
+          [module.id]: {
+            visible: true,
+            view: true,
+            edit: false,
+            delete: false,
+            export: false,
+            import: false
+          }
+        }), {});
+        
+        setPermissions(prev => ({
+          ...prev,
+          [user.id]: defaultPermissions
+        }));
+        
+        setOriginalPermissions(prev => ({
+          ...prev,
+          [user.id]: defaultPermissions
+        }));
+        
+        setHasChanges(false);
+        
+        toast({
+          title: "Info",
+          description: "Using default permissions. Could not fetch existing permissions.",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -217,10 +313,19 @@ export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogP
     };
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedUser) return;
     
     const payload = createPermissionsPayload();
+    if (!payload) {
+      toast({
+        title: "Error",
+        description: "Failed to create permissions payload",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log('Permissions Payload:', JSON.stringify(payload, null, 2));
     
     // Log the visible modules for this user
@@ -231,24 +336,49 @@ export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogP
     
     console.log('Visible Modules for', selectedUser.email, ':', visibleModules.map(m => m.label));
     
-    // Update original permissions to current state
-    setOriginalPermissions(prev => ({
-      ...prev,
-      [selectedUser.id]: permissions[selectedUser.id]
-    }));
-    
-    setHasChanges(false);
-    setIsSubmitted(true);
-    
-    toast({
-      title: "Success",
-      description: `Permissions updated for ${selectedUser.full_name}. Check console for payload.`,
-    });
-    
-    // Reset submitted state after 3 seconds
-    setTimeout(() => {
-      setIsSubmitted(false);
-    }, 3000);
+    try {
+      // Submit permissions to API
+      const response = await submitUserPermissions(payload);
+      
+      console.log('API Response:', response);
+      
+      // Update original permissions to current state
+      setOriginalPermissions(prev => ({
+        ...prev,
+        [selectedUser.id]: permissions[selectedUser.id]
+      }));
+      
+      setHasChanges(false);
+      setIsSubmitted(true);
+      
+      // Show success message from API response
+      toast({
+        title: "Success",
+        description: response.message || `Permissions updated for ${selectedUser.full_name}`,
+      });
+      
+      // If this is the logged-in user, update sidebar permissions
+      if (selectedUser.email === loggedInUserEmail) {
+        const visibleModuleIds = visibleModules.map(m => m.id);
+        if (onPermissionsUpdate) {
+          onPermissionsUpdate(selectedUser.email, visibleModuleIds);
+        }
+      }
+      
+      // Reset submitted state after 3 seconds
+      setTimeout(() => {
+        setIsSubmitted(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error submitting permissions:', error);
+      
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit permissions",
+        variant: "destructive",
+      });
+    }
   };
 
   const getVisibleModules = () => {
@@ -261,7 +391,7 @@ export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogP
   };
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -333,106 +463,115 @@ export function UserPermissionsDialog({ users, trigger }: UserPermissionsDialogP
                   </div>
                 </div>
                 
-                <ScrollArea className="flex-1">
-                  <div className="space-y-3 pr-4">
-                    {(isSubmitted ? getVisibleModules() : modules).map((module) => {
-                      const permission = getModulePermission(module.id);
-                      return (
-                        <div
-                          key={module.id}
-                          className="p-4 border rounded-lg hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg">{module.emoji}</span>
-                              <div>
-                                <div className="font-medium">{module.label}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  Module ID: {module.id}
+                {loading ? (
+                  <div className="flex items-center justify-center flex-1">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Loading permissions...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ScrollArea className="flex-1">
+                    <div className="space-y-3 pr-4">
+                      {(isSubmitted ? getVisibleModules() : modules).map((module) => {
+                        const permission = getModulePermission(module.id);
+                        return (
+                          <div
+                            key={module.id}
+                            className="p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg">{module.emoji}</span>
+                                <div>
+                                  <div className="font-medium">{module.label}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Module ID: {module.id}
+                                  </div>
                                 </div>
                               </div>
+                              
+                              {!isSubmitted && (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant={permission.visible ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleModuleVisibility(module.id)}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {permission.visible ? (
+                                      <>
+                                        <Eye className="h-4 w-4" />
+                                        Visible
+                                      </>
+                                    ) : (
+                                      <>
+                                        <EyeOff className="h-4 w-4" />
+                                        Hidden
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              {isSubmitted && (
+                                <Badge variant="default" className="text-xs">
+                                  Visible
+                                </Badge>
+                              )}
                             </div>
                             
-                            {!isSubmitted && (
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant={permission.visible ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => toggleModuleVisibility(module.id)}
-                                  className="flex items-center gap-2"
-                                >
-                                  {permission.visible ? (
-                                    <>
-                                      <Eye className="h-4 w-4" />
-                                      Visible
-                                    </>
-                                  ) : (
-                                    <>
-                                      <EyeOff className="h-4 w-4" />
-                                      Hidden
-                                    </>
-                                  )}
-                                </Button>
+                            {permission.visible && !isSubmitted && (
+                              <div className="space-y-3">
+                                <div className="text-sm text-muted-foreground">
+                                  Module Permissions:
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {permissionTypes.map((permType) => {
+                                    const isEnabled = permission[permType.id as keyof ModulePermission] as boolean;
+                                    return (
+                                      <Button
+                                        key={permType.id}
+                                        variant={isEnabled ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => togglePermission(module.id, permType.id)}
+                                        className="flex items-center gap-2 justify-start"
+                                      >
+                                        <span>{permType.icon}</span>
+                                        {permType.label}
+                                      </Button>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
                             
-                            {isSubmitted && (
-                              <Badge variant="default" className="text-xs">
-                                Visible
-                              </Badge>
+                            {permission.visible && isSubmitted && (
+                              <div className="space-y-2">
+                                <div className="text-sm text-muted-foreground">
+                                  Active Permissions:
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {permissionTypes.map((permType) => {
+                                    const isEnabled = permission[permType.id as keyof ModulePermission] as boolean;
+                                    if (isEnabled) {
+                                      return (
+                                        <Badge key={permType.id} variant="secondary" className="text-xs">
+                                          {permType.label}
+                                        </Badge>
+                                      );
+                                    }
+                                    return null;
+                                  })}
+                                </div>
+                              </div>
                             )}
                           </div>
-                          
-                          {permission.visible && !isSubmitted && (
-                            <div className="space-y-3">
-                              <div className="text-sm text-muted-foreground">
-                                Module Permissions:
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                {permissionTypes.map((permType) => {
-                                  const isEnabled = permission[permType.id as keyof ModulePermission] as boolean;
-                                  return (
-                                    <Button
-                                      key={permType.id}
-                                      variant={isEnabled ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => togglePermission(module.id, permType.id)}
-                                      className="flex items-center gap-2 justify-start"
-                                    >
-                                      <span>{permType.icon}</span>
-                                      {permType.label}
-                                    </Button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {permission.visible && isSubmitted && (
-                            <div className="space-y-2">
-                              <div className="text-sm text-muted-foreground">
-                                Active Permissions:
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {permissionTypes.map((permType) => {
-                                  const isEnabled = permission[permType.id as keyof ModulePermission] as boolean;
-                                  if (isEnabled) {
-                                    return (
-                                      <Badge key={permType.id} variant="secondary" className="text-xs">
-                                        {permType.label}
-                                      </Badge>
-                                    );
-                                  }
-                                  return null;
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

@@ -1,5 +1,6 @@
 import { Task, CreateTaskInput, User } from './types';
 import { getStoredToken } from './token-context';
+import { PermissionsPayload } from './modules';
 
 export async function getTasks(email: string): Promise<Task[]> {
   const response = await fetch(`/api/proxy/list?email=${encodeURIComponent(email)}`);
@@ -136,6 +137,79 @@ export async function deleteUser(id: string): Promise<{ statusCode: number; mess
   
   if (!response.ok) {
     throw new Error('Failed to delete user');
+  }
+  
+  return response.json();
+}
+
+export async function submitUserPermissions(payload: PermissionsPayload): Promise<{
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+    email: string;
+    modules: { [key: string]: boolean };
+    permissions: { [key: string]: {
+      view: boolean;
+      edit: boolean;
+      delete: boolean;
+      export: boolean;
+      import: boolean;
+    }};
+    updated_by: string;
+    created: string;
+    updated: string;
+  };
+}> {
+  const response = await fetch('/api/proxy/perm', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to submit permissions: ${errorText}`);
+  }
+  
+  return response.json();
+}
+
+export async function getUserPermissions(email: string): Promise<{
+  statusCode: number;
+  message: string;
+  data: {
+    collectionId: string;
+    collectionName: string;
+    created: string;
+    email: string;
+    id: string;
+    modules: { [key: string]: boolean };
+    permissions: { [key: string]: {
+      view: boolean;
+      edit: boolean;
+      delete: boolean;
+      export: boolean;
+      import: boolean;
+    }};
+    updated: string;
+    updated_by: string;
+  };
+  source: string;
+  cacheKey: string;
+}> {
+  const response = await fetch(`/api/proxy/perm?email=${encodeURIComponent(email)}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch permissions: ${errorText}`);
   }
   
   return response.json();

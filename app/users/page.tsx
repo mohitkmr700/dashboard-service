@@ -18,8 +18,6 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { token, isLoading: tokenLoading, error: tokenError } = useToken();
-  // const [roleFilter, setRoleFilter] = useState<string>('');
-  // const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -63,6 +61,24 @@ export default function UsersPage() {
       fetchUsers();
     }
   }, [token, tokenLoading, fetchUsers]);
+
+  // Handle permissions update for sidebar control
+  const handlePermissionsUpdate = useCallback((userEmail: string, visibleModuleIds: string[]) => {
+    console.log('Permissions updated for sidebar control:', { userEmail, visibleModuleIds });
+    
+    // Store visible modules in localStorage for persistence
+    localStorage.setItem('visibleModules', JSON.stringify(visibleModuleIds));
+    
+    // You can also dispatch a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('permissionsUpdated', {
+      detail: { userEmail, visibleModules: visibleModuleIds }
+    }));
+    
+    toast({
+      title: "Sidebar Updated",
+      description: `Sidebar modules updated based on permissions for ${userEmail}`,
+    });
+  }, [toast]);
 
   const handleDeleteUser = async (user: User) => {
     try {
@@ -246,6 +262,7 @@ export default function UsersPage() {
                 Manage Permissions
               </Button>
             }
+            onPermissionsUpdate={handlePermissionsUpdate}
           />
           <Button onClick={fetchUsers} disabled={loading}>
             Refresh
