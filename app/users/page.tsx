@@ -6,13 +6,19 @@ import { UserPermissionsDialog } from '../../components/users/user-permissions-d
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { User } from '../../lib/types';
 import { Edit, Eye, User as UserIcon, Shield, Trash2 } from 'lucide-react';
 import { DataTable, Column, Action } from '../../components/ui/data-table';
+import { ViewUserPermissionsDialog } from '../../components/users/view-user-permissions-dialog';
+import { EditUserPermissionsDialog } from '../../components/users/edit-user-permissions-dialog';
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const [selectedUserForView, setSelectedUserForView] = useState<User | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // RTK Query hooks
   const { data: users = [], isLoading, error, refetch } = useGetUsersQuery();
@@ -46,20 +52,14 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    // TODO: Implement edit user functionality
-    toast({
-      title: "Info",
-      description: `Edit user: ${user.full_name}`,
-    });
+  const handleViewUser = (user: User) => {
+    setSelectedUserForView(user);
+    setViewDialogOpen(true);
   };
 
-  const handleViewUser = (user: User) => {
-    // TODO: Implement view user functionality
-    toast({
-      title: "Info",
-      description: `View user: ${user.full_name}`,
-    });
+  const handleEditUser = (user: User) => {
+    setSelectedUserForEdit(user);
+    setEditDialogOpen(true);
   };
 
   const formatDate = (dateString?: string) => {
@@ -168,22 +168,36 @@ export default function UsersPage() {
           </Button>
         </div>
       </div>
-      <div className="space-y-4">
-        <p className="text-muted-foreground">
-          Manage your users and their permissions here.
-        </p>
-        <DataTable
-          data={filteredUsers}
-          columns={columns}
-          actions={actions}
-          loading={isLoading}
-          searchable={true}
-          sortable={true}
-          pagination={true}
-          pageSize={10}
-          emptyMessage="No users found"
+
+      <DataTable
+        data={filteredUsers}
+        columns={columns}
+        actions={actions}
+        searchable={true}
+        sortable={true}
+        pagination={true}
+        pageSize={10}
+        emptyMessage="No users found"
+      />
+
+      {/* View User Permissions Dialog */}
+      {selectedUserForView && (
+        <ViewUserPermissionsDialog
+          user={selectedUserForView}
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
         />
-      </div>
+      )}
+
+      {/* Edit User Permissions Dialog */}
+      {selectedUserForEdit && (
+        <EditUserPermissionsDialog
+          user={selectedUserForEdit}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onPermissionsUpdate={handlePermissionsUpdate}
+        />
+      )}
     </div>
   );
 } 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User } from '../../lib/types';
 import {
   Dialog,
@@ -195,7 +195,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
     }));
   };
 
-  const checkForChanges = (newPermissions: UserPermissions) => {
+  const checkForChanges = useCallback((newPermissions: UserPermissions) => {
     if (!selectedUser) return false;
     
     const original = originalPermissions[selectedUser.id];
@@ -204,7 +204,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
     if (!original || !current) return false;
     
     return JSON.stringify(original) !== JSON.stringify(current);
-  };
+  }, [originalPermissions, selectedUser]);
 
   useEffect(() => {
     setHasChanges(checkForChanges(permissions));
