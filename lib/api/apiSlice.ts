@@ -38,7 +38,6 @@ export const api = createApi({
     getTasks: builder.query<Task[], string>({
       query: (email) => `/proxy/list?email=${encodeURIComponent(email)}`,
       transformResponse: (response: unknown) => {
-        console.log('getTasks raw response:', response);
         // Handle different response structures
         if (Array.isArray(response)) {
           return response;
@@ -50,7 +49,6 @@ export const api = createApi({
           return (response as { tasks: Task[] }).tasks;
         }
         // If response is not an array, return empty array
-        console.warn('Unexpected tasks API response structure:', response);
         return [];
       },
       providesTags: (result) =>
@@ -76,7 +74,6 @@ export const api = createApi({
       invalidatesTags: [{ type: 'Task' }],
       // Optimistic update for immediate UI feedback
       async onQueryStarted(task, { dispatch, queryFulfilled }) {
-        console.log('Starting optimistic create for task:', task);
         // Optimistically add the task to the cache
         const patchResult = dispatch(
           api.util.updateQueryData('getTasks', task.email, (draft) => {
@@ -96,15 +93,12 @@ export const api = createApi({
               completed_at: task.completed_at,
             };
             draft.unshift(newTask); // Add to beginning of list
-            console.log('Optimistically added task, new length:', draft.length);
           })
         );
         
         try {
           await queryFulfilled;
-          console.log('Create mutation completed successfully');
-        } catch (error) {
-          console.log('Create mutation failed, undoing optimistic update:', error);
+        } catch {
           // If the mutation fails, undo the optimistic update
           patchResult.undo();
         }
@@ -120,29 +114,22 @@ export const api = createApi({
       invalidatesTags: [{ type: 'Task' }],
       // Optimistic update for immediate UI feedback
       async onQueryStarted({ id, task }, { dispatch, queryFulfilled }) {
-        console.log('Starting optimistic update for task:', id, 'with data:', task);
         // Optimistically update the task in the cache
-        const patchResult = dispatch(
-          api.util.updateQueryData('getTasks', task.email || '', (draft) => {
-            const taskIndex = draft.findIndex(t => t.id === id);
-            console.log('Found task at index:', taskIndex, 'in draft with length:', draft.length);
-            if (taskIndex !== -1) {
-              draft[taskIndex] = { ...draft[taskIndex], ...task };
-              console.log('Optimistically updated task');
-            } else {
-              console.log('Task not found in cache for optimistic update');
-            }
-          })
-        );
-        
-        try {
-          await queryFulfilled;
-          console.log('Update mutation completed successfully');
-        } catch (error) {
-          console.log('Update mutation failed, undoing optimistic update:', error);
-          // If the mutation fails, undo the optimistic update
-          patchResult.undo();
-        }
+                  const patchResult = dispatch(
+            api.util.updateQueryData('getTasks', task.email || '', (draft) => {
+              const taskIndex = draft.findIndex(t => t.id === id);
+              if (taskIndex !== -1) {
+                draft[taskIndex] = { ...draft[taskIndex], ...task };
+              }
+            })
+          );
+          
+          try {
+            await queryFulfilled;
+          } catch {
+            // If the mutation fails, undo the optimistic update
+            patchResult.undo();
+          }
       },
     }),
 
@@ -158,29 +145,22 @@ export const api = createApi({
       invalidatesTags: [{ type: 'Task' }],
       // Optimistic update for immediate UI feedback
       async onQueryStarted({ id, email }, { dispatch, queryFulfilled }) {
-        console.log('Starting optimistic delete for task:', id, 'user:', email);
         // Optimistically remove the task from the specific user's task list
-        const patchResult = dispatch(
-          api.util.updateQueryData('getTasks', email, (draft) => {
-            const index = draft.findIndex(task => task.id === id);
-            console.log('Found task at index:', index, 'in draft with length:', draft.length);
-            if (index !== -1) {
-              draft.splice(index, 1);
-              console.log('Optimistically removed task, new length:', draft.length);
-            } else {
-              console.log('Task not found in cache for optimistic update');
-            }
-          })
-        );
-        
-        try {
-          await queryFulfilled;
-          console.log('Delete mutation completed successfully');
-        } catch (error) {
-          console.log('Delete mutation failed, undoing optimistic update:', error);
-          // If the mutation fails, undo the optimistic update
-          patchResult.undo();
-        }
+                  const patchResult = dispatch(
+            api.util.updateQueryData('getTasks', email, (draft) => {
+              const index = draft.findIndex(task => task.id === id);
+              if (index !== -1) {
+                draft.splice(index, 1);
+              }
+            })
+          );
+          
+          try {
+            await queryFulfilled;
+          } catch {
+            // If the mutation fails, undo the optimistic update
+            patchResult.undo();
+          }
       },
     }),
 
@@ -199,7 +179,6 @@ export const api = createApi({
           return (response as { users: User[] }).users;
         }
         // If response is not an array, return empty array
-        console.warn('Unexpected users API response structure:', response);
         return [];
       },
       providesTags: (result) =>

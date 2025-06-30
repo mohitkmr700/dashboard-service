@@ -209,9 +209,7 @@ export function TaskTable({ userEmail, onTaskUpdated }: TaskTableProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      console.log('Deleting task:', id, 'for user:', userEmail);
-      const result = await deleteTask({ id, email: userEmail }).unwrap();
-      console.log('Delete result:', result);
+              await deleteTask({ id, email: userEmail }).unwrap();
       toast({
         title: "Success",
         description: "Task deleted successfully",

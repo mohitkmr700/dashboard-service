@@ -75,6 +75,219 @@ dashboard-service/
    
    Add your environment variables:
    ```env
+   NEXT_PUBLIC_AUTH_DOMAIN=your_auth_service_url
+   NEXT_PUBLIC_API_DOMAIN=your_api_service_url
+   ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 📚 RTK Query Integration
+
+This project uses RTK Query for efficient API state management, caching, and data synchronization.
+
+### What is RTK Query?
+
+RTK Query is a powerful data fetching and caching tool that provides:
+- **Automatic caching** and cache invalidation
+- **Loading and error states** out of the box
+- **Optimistic updates** and background refetching
+- **TypeScript support** with full type safety
+- **Normalized cache** for efficient updates
+
+### Project Structure
+
+```
+lib/
+├── store.ts                 # Redux store configuration
+├── api/
+│   ├── apiSlice.ts         # Main API slice with all endpoints
+│   └── authSlice.ts        # Authentication-specific endpoints
+└── token-context.tsx       # Centralized token management
+```
+
+### Available API Endpoints
+
+#### Tasks
+- `useGetTasksQuery(email)` - Fetch tasks for a user
+- `useCreateTaskMutation()` - Create a new task
+- `useUpdateTaskMutation()` - Update an existing task
+- `useDeleteTaskMutation()` - Delete a task
+
+#### Users
+- `useGetUsersQuery()` - Fetch all users
+- `useDeleteUserMutation()` - Delete a user
+
+#### Permissions
+- `useGetUserPermissionsQuery(email)` - Fetch user permissions
+- `useSubmitUserPermissionsMutation()` - Submit user permissions
+
+#### Authentication
+- `useLoginMutation()` - Login user
+- `useLogoutMutation()` - Logout user
+
+### Usage Examples
+
+#### Basic Query Usage
+
+```tsx
+import { useGetTasksQuery } from '../lib/api/apiSlice';
+
+function TaskList({ userEmail }: { userEmail: string }) {
+  const { data: tasks, isLoading, error, refetch } = useGetTasksQuery(userEmail);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error loading tasks</div>;
+
+  return (
+    <div>
+      {tasks?.map(task => (
+        <div key={task.id}>{task.title}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+#### Mutation Usage
+
+```tsx
+import { useCreateTaskMutation } from '../lib/api/apiSlice';
+
+function CreateTaskForm() {
+  const [createTask, { isLoading, error }] = useCreateTaskMutation();
+
+  const handleSubmit = async (taskData) => {
+    try {
+      const result = await createTask(taskData).unwrap();
+      console.log('Task created:', result);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create Task'}
+      </button>
+    </form>
+  );
+}
+```
+
+#### Using Token Context
+
+```tsx
+import { useToken } from '../lib/token-context';
+
+function MyComponent() {
+  const { token, decodedToken, isLoading, error } = useToken();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  
+  return (
+    <div>
+      <p>Welcome, {decodedToken?.full_name}!</p>
+      <p>Email: {decodedToken?.email}</p>
+    </div>
+  );
+}
+```
+
+### Cache Management
+
+RTK Query automatically manages cache invalidation using tags. When you perform mutations, related queries are automatically refetched:
+
+```tsx
+// This mutation will invalidate the 'Task' cache
+const [createTask] = useCreateTaskMutation();
+
+// This query will be automatically refetched after createTask succeeds
+# Task Management Dashboard
+
+A modern, full-stack task management dashboard built with Next.js 14, TypeScript, Tailwind CSS, and RTK Query. Features real-time task management, user permissions, analytics, and a responsive design.
+
+## 🚀 Features
+
+- **Task Management**: Create, edit, delete, and track task progress
+- **User Management**: Manage users and their permissions
+- **Real-time Analytics**: Task completion trends and efficiency metrics
+- **Role-based Access Control**: Admin, Punisher, and User roles
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Dark/Light Theme**: Toggle between themes
+- **Loading States**: Smooth loading experiences with shimmer effects
+- **Optimistic Updates**: Immediate UI feedback for better UX
+- **Centralized State Management**: RTK Query for API state management
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **State Management**: Redux Toolkit, RTK Query
+- **UI Components**: Radix UI, Lucide React Icons
+- **Charts**: Recharts
+- **Authentication**: JWT with HTTP-only cookies
+- **Styling**: Tailwind CSS with custom design system
+
+## 📁 Project Structure
+
+```
+dashboard-service/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── dashboard/         # Dashboard page
+│   ├── users/            # Users management
+│   ├── analytics/        # Analytics page
+│   ├── settings/         # Settings page
+│   ├── documents/        # Documents page
+│   ├── messages/         # Messages page
+│   └── login/            # Login page
+├── components/           # React components
+│   ├── ui/              # Reusable UI components
+│   ├── tasks/           # Task-related components
+│   ├── users/           # User-related components
+│   └── shared/          # Shared layout components
+├── lib/                 # Utilities and configurations
+│   ├── api/            # RTK Query API slices
+│   ├── types/          # TypeScript type definitions
+│   └── contexts/       # React contexts
+└── public/             # Static assets
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd dashboard-service
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Add your environment variables:
+   ```env
    NEXT_PUBLIC_AUTH_DOMAIN=http://localhost:3301
    ```
 

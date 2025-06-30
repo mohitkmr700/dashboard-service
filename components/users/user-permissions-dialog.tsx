@@ -282,7 +282,7 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
       return;
     }
     
-    console.log('Permissions Payload:', JSON.stringify(payload, null, 2));
+    
     
     // Log the visible modules for this user
     const visibleModules = modules.filter(module => {
@@ -290,13 +290,13 @@ export function UserPermissionsDialog({ users, trigger, onPermissionsUpdate }: U
       return permission.visible;
     });
     
-    console.log('Visible Modules for', selectedUser.email, ':', visibleModules.map(m => m.label));
+    
     
     try {
       // Submit permissions using RTK Query
       const response = await updatePermissions(payload).unwrap();
       
-      console.log('API Response:', response);
+      
       
       // Update original permissions to current state
       setOriginalPermissions(prev => ({

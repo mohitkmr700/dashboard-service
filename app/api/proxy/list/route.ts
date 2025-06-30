@@ -24,8 +24,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
 
-  console.log('Proxy list request for email:', email);
-  console.log('API_DOMAIN:', API_DOMAIN);
+  
 
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -33,7 +32,7 @@ export async function GET(request: Request) {
 
   try {
     const apiUrl = `${API_DOMAIN}/list=all?email=${encodeURIComponent(email)}`;
-    console.log('Making API request to:', apiUrl);
+
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -45,10 +44,10 @@ export async function GET(request: Request) {
       }
     });
 
-    console.log('API response status:', response.status);
+    
     
     if (!response.ok) {
-      console.error('API response not ok:', response.status, response.statusText);
+      
       return NextResponse.json(
         { error: `API request failed: ${response.status}` },
         { status: response.status }
@@ -56,12 +55,11 @@ export async function GET(request: Request) {
     }
 
     const responseData = await response.json() as ApiResponse;
-    console.log('API response data:', responseData);
+    
     
     // Return the data array directly
     return NextResponse.json(responseData.data || []);
-  } catch (error) {
-    console.error('Proxy error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch data' },
       { status: 500 }

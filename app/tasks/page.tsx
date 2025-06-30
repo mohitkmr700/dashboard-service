@@ -1,6 +1,5 @@
 "use client";
 
-import { Task } from '../../lib/types';
 import { TaskTable } from '../../components/tasks/task-table';
 import { useGetTasksQuery } from '../../lib/api/apiSlice';
 import { useToken } from '../../lib/token-context';
@@ -29,10 +28,9 @@ export default function TasksPage() {
   // Check if we're still loading anything
   const isPageLoading = isTokenLoading || isSidebarLoading || (isFullyAuthenticated && isTasksQueryLoading);
 
-  const handleTaskUpdated = (updatedTask: Task) => {
-    // RTK Query will automatically update the cache
-    console.log('Task updated:', updatedTask);
-  };
+      const handleTaskUpdated = () => {
+      // RTK Query will automatically update the cache
+    };
 
   // Show loading if anything is still loading or not authenticated
   if (isPageLoading || !isFullyAuthenticated) {

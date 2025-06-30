@@ -70,7 +70,7 @@ export default function DashboardPage() {
     if (isFullyAuthenticated) {
       const maxLoadingTime = 8000; // 8 seconds max
       const timer = setTimeout(() => {
-        console.log('Dashboard: Force clearing loading state after timeout');
+
         setIsLoading(false);
       }, maxLoadingTime);
       return () => clearTimeout(timer);

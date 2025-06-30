@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
     // Get the access token from cookies
     const accessToken = request.cookies.get('access_token')?.value;
     
-    // console.log('Server-side API call to:', `${authDomain}/user/profiles`);
-    // console.log('Token available:', !!accessToken);
+
     
     if (!accessToken) {
       return NextResponse.json(
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // console.log('Auth service response status:', response.status);
+    
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -46,13 +45,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('Users API response structure:', {
-      isArray: Array.isArray(data),
-      hasData: data && typeof data === 'object',
-      keys: data ? Object.keys(data) : [],
-      dataType: typeof data,
-      dataLength: Array.isArray(data) ? data.length : 'not array'
-    });
+
     
     return NextResponse.json(data);
   } catch (error) {
