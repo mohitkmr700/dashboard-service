@@ -3,7 +3,6 @@
 import { useEffect, useMemo } from 'react';
 import { Task, TaskStatus } from '../../lib/types';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
-import { TaskTable } from '../../components/tasks/task-table';
 import { StatusTaskBoxes } from '../../components/tasks/status-task-boxes';
 import { DashboardStats } from '../../components/DashboardStats';
 import CreateTaskDialog from '../../components/tasks/create-task-dialog';
@@ -91,11 +90,6 @@ export default function DashboardPage() {
     refetch();
   };
 
-  const handleTaskUpdated = (updatedTask: Task) => {
-    // RTK Query will automatically update the cache
-    console.log('Task updated:', updatedTask);
-  };
-
   // Memoize the stats to prevent unnecessary recalculations
   const stats = useMemo(() => ({
     totalTasks: tasks.length,
@@ -114,7 +108,7 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-destructive mb-4">Failed to fetch tasks</p>
+          <p className="text-destructive mb-4">Failed to fetch dashboard data</p>
           <button
             onClick={() => refetch()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
@@ -133,28 +127,21 @@ export default function DashboardPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] overflow-hidden">
-      <div className="h-full flex flex-col p-4 md:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Task Management Dashboard</h1>
+      <div className="h-full flex flex-col p-3 md:p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-bold">Task Management Dashboard</h1>
           <CreateTaskDialog onTaskCreated={handleTaskCreated} />
         </div>
 
-        <div className="flex-1 grid gap-4 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="flex-1 grid gap-3 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-4  mt-2 h-2">
             <DashboardStats stats={stats} />
           </div>
           
           <ProgressGraphCard tasks={tasks} />
-
+          
           {/* Status Task Boxes */}
           <StatusTaskBoxes tasks={tasks} />
-
-          <div className="flex-1 overflow-hidden">
-            <TaskTable 
-              userEmail={decodedToken?.email || ''}
-              onTaskUpdated={handleTaskUpdated}
-            />
-          </div>
         </div>
       </div>
     </div>

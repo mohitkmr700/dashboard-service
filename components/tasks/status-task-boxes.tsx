@@ -42,7 +42,7 @@ export function StatusTaskBoxes({ tasks, className }: StatusTaskBoxesProps) {
   }, [tasks]);
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 ${className || ''}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full ${className || ''}`}>
       <StatusTaskBox 
         status={TaskStatus.BACKLOG} 
         tasks={tasksByStatus[TaskStatus.BACKLOG]} 

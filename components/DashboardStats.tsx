@@ -48,14 +48,14 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
     <>
       {items.map((item) => (
         <Card key={item.title} className="border-none shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${item.bg}`}>
-                <item.icon className={`h-5 w-5 ${item.color}`} />
+          <CardContent className="p-3 h-20 flex items-center justify-center">
+            <div className="flex items-center justify-center gap-3">
+              <div className={`p-1.5 rounded-lg ${item.bg}`}>
+                <item.icon className={`h-4 w-4 ${item.color}`} />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{item.title}</p>
-                <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+              <div className="text-center">
+                <p className="text-xs font-medium text-muted-foreground">{item.title}</p>
+                <p className={`text-xl font-bold ${item.color}`}>{item.value}</p>
               </div>
             </div>
           </CardContent>

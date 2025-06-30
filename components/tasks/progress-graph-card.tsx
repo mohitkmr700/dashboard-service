@@ -276,12 +276,12 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Task Overview</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg">Task Overview</CardTitle>
+            <CardDescription className="text-sm">
               Showing task completion trends over time
             </CardDescription>
           </div>
@@ -300,12 +300,12 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4 mb-4">
+      <CardContent className="pt-0 pb-2">
+        <div className="grid grid-cols-3 gap-4 mb-3">
           <div>
             <p className="text-sm text-muted-foreground">Efficiency Rate</p>
             <div className="flex items-center gap-2">
-              <p className={`text-xl font-bold ${efficiencyRate >= 70 ? 'text-success' : efficiencyRate >= 40 ? 'text-warning' : 'text-destructive'}`}>
+              <p className={`text-lg font-bold ${efficiencyRate >= 70 ? 'text-success' : efficiencyRate >= 40 ? 'text-warning' : 'text-destructive'}`}>
                 {efficiencyRate}%
               </p>
               <TrendingUp 
@@ -332,18 +332,18 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">On-Time Tasks</p>
-            <p className={`text-xl font-bold ${totalOnTime > totalLate ? 'text-success' : 'text-destructive'}`}>
+            <p className={`text-lg font-bold ${totalOnTime > totalLate ? 'text-success' : 'text-destructive'}`}>
               {totalOnTime}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Late Tasks</p>
-            <p className={`text-xl font-bold ${totalLate === 0 ? 'text-success' : 'text-destructive'}`}>
+            <p className={`text-lg font-bold ${totalLate === 0 ? 'text-success' : 'text-destructive'}`}>
               {totalLate}
             </p>
           </div>
         </div>
-        <div className="h-[150px] w-full">
+        <div className="h-[120px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={chartData}
@@ -351,7 +351,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
                 left: 12,
                 right: 12,
                 top: 12,
-                bottom: 12,
+                bottom: 8,
               }}
               stackOffset="expand"
             >

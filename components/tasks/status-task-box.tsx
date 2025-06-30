@@ -46,11 +46,11 @@ export function StatusTaskBox({ status, tasks, className }: StatusTaskBoxProps) 
 
   return (
     <Card className={cn(
-      "h-64 border-2 transition-all duration-200 hover:shadow-md flex flex-col",
+      "h-48 border-2 transition-all duration-200 hover:shadow-md flex flex-col",
       config.borderColor,
       className
     )}>
-      <CardHeader className={cn("pb-3 flex-shrink-0", config.bgColor)}>
+      <CardHeader className={cn("pb-2 flex-shrink-0", config.bgColor)}>
         <CardTitle className={cn("text-sm font-semibold flex items-center justify-between", config.color)}>
           {config.title}
           <Badge variant="secondary" className={cn("text-xs", config.color, config.bgColor)}>
@@ -59,17 +59,17 @@ export function StatusTaskBox({ status, tasks, className }: StatusTaskBoxProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0 flex-1 overflow-hidden">
-        <ScrollArea className="h-full px-4 pb-4 pt-2">
+        <ScrollArea className="h-full px-3 pb-3 pt-1">
           {tasks.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+            <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
               No tasks
             </div>
           ) : (
-            <div className="space-y-2 pr-2">
+            <div className="space-y-1.5 pr-2">
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer min-h-[60px] flex items-center"
+                  className="p-2 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer min-h-[50px] flex items-center"
                 >
                   <h4 className="text-sm font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap w-full">
                     {task.title}

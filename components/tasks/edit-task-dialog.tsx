@@ -62,7 +62,8 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
       setStatus(TaskStatus.COMPLETED);
     } else {
       setProgress(previousProgress);
-      // Don't automatically change status when unchecking completion
+      // Reset status to previous state or default when unchecking completion
+      setStatus(TaskStatus.BACKLOG);
     }
   };
 
@@ -71,6 +72,9 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
     if (!task) return;
 
     try {
+      // Ensure status is set to COMPLETED if task is done
+      const finalStatus = is_done ? TaskStatus.COMPLETED : status;
+      
       const updatedTask = await updateTask({
           id: task.id,
         task: {
@@ -79,7 +83,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
           progress,
           deadline,
           is_done: is_done ? true : false, // Explicitly set to false when not done
-          status,
+          status: finalStatus, // Use the final status
           completed_at: is_done ? new Date().toISOString() : null,
           email: task.email
         }
@@ -137,6 +141,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
               <Select
                 value={status}
                 onValueChange={(value: TaskStatus) => setStatus(value)}
+                disabled={is_done}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -147,6 +152,11 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
                   <SelectItem value={TaskStatus.COMPLETED}>Completed</SelectItem>
                 </SelectContent>
               </Select>
+              {is_done && (
+                <p className="text-xs text-muted-foreground">
+                  Status automatically set to &quot;Completed&quot; when task is marked as done
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deadline">Deadline</Label>

@@ -1,4 +1,4 @@
-import { Home, Users, Settings, BarChart, FileText, Mail } from "lucide-react";
+import { Home, Users, Settings, BarChart, FileText, Mail, CheckSquare } from "lucide-react";
 
 export interface ModuleConfig {
   id: string;
@@ -15,6 +15,13 @@ export const modules: ModuleConfig[] = [
     icon: Home, 
     href: '/dashboard',
     emoji: '🏠'
+  },
+  { 
+    id: 'tasks', 
+    label: 'Tasks', 
+    icon: CheckSquare, 
+    href: '/tasks',
+    emoji: '✅'
   },
   { 
     id: 'analytics', 
