@@ -108,7 +108,6 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
-                    <SelectItem value={TaskStatus.PENDING}>Pending</SelectItem>
                     <SelectItem value={TaskStatus.PROGRESS}>In Progress</SelectItem>
                     <SelectItem value={TaskStatus.COMPLETED}>Completed</SelectItem>
                   </SelectContent>
@@ -121,7 +120,6 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
                   type="date"
                 value={formData.deadline}
                   onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                required
               />
               </div>
             </div>

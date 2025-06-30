@@ -9,9 +9,8 @@ export interface Route {
   role?: UserRole;
 }
 
-// Task status enum with the 4 required values
+// Task status enum with the 3 required values (removed PENDING)
 export enum TaskStatus {
-  PENDING = 'pending',
   BACKLOG = 'backlog',
   PROGRESS = 'progress',
   COMPLETED = 'completed'

@@ -143,7 +143,6 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
-                  <SelectItem value={TaskStatus.PENDING}>Pending</SelectItem>
                   <SelectItem value={TaskStatus.PROGRESS}>In Progress</SelectItem>
                   <SelectItem value={TaskStatus.COMPLETED}>Completed</SelectItem>
                 </SelectContent>

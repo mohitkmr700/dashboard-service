@@ -49,13 +49,6 @@ const getStatusInfo = (task: Task) => {
           text: 'text-blue-500',
           label: 'In Progress'
         };
-      case TaskStatus.PENDING:
-        return {
-          color: 'bg-yellow-500/10',
-          border: 'border border-yellow-500/20',
-          text: 'text-yellow-500',
-          label: 'Pending'
-        };
       case TaskStatus.BACKLOG:
         return {
           color: 'bg-gray-500/10',
@@ -86,10 +79,10 @@ const getStatusInfo = (task: Task) => {
     };
   }
   return {
-    color: 'bg-yellow-500/10',
-    border: 'border border-yellow-500/20',
-    text: 'text-yellow-500',
-    label: 'Pending'
+    color: 'bg-gray-500/10',
+    border: 'border border-gray-500/20',
+    text: 'text-gray-500',
+    label: 'Backlog'
   };
 };
 

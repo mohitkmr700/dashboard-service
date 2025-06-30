@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { Task, TaskStatus } from '../../lib/types';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { TaskTable } from '../../components/tasks/task-table';
+import { StatusTaskBoxes } from '../../components/tasks/status-task-boxes';
 import { DashboardStats } from '../../components/DashboardStats';
 import CreateTaskDialog from '../../components/tasks/create-task-dialog';
 import { useGetTasksQuery } from '../../lib/api/apiSlice';
@@ -100,7 +101,7 @@ export default function DashboardPage() {
     totalTasks: tasks.length,
     completedTasks: tasks.filter((task: Task) => task.is_done).length,
     inProgressTasks: tasks.filter((task: Task) => task.status === TaskStatus.PROGRESS).length,
-    pendingTasks: tasks.filter((task: Task) => !task.is_done && task.progress === 0).length,
+    pendingTasks: tasks.filter((task: Task) => task.status === TaskStatus.BACKLOG).length,
   }), [tasks]);
 
   // Show shimmer if anything is still loading or not authenticated
@@ -144,6 +145,9 @@ export default function DashboardPage() {
           </div>
           
           <ProgressGraphCard tasks={tasks} />
+
+          {/* Status Task Boxes */}
+          <StatusTaskBoxes tasks={tasks} />
 
           <div className="flex-1 overflow-hidden">
             <TaskTable 
