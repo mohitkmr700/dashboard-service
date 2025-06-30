@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'sec-ch-ua-platform': '"macOS"',
-        'Referer': 'http://localhost:3301/',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
         'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
         'DNT': '1',

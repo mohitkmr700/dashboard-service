@@ -8,9 +8,10 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Slider } from '../ui/slider';
 import { Checkbox } from '../ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useUpdateTaskMutation } from '../../lib/api/apiSlice';
 import { useToast } from '../ui/use-toast';
-import { Task } from '../../lib/types';
+import { Task, TaskStatus } from '../../lib/types';
 import { format, parseISO, startOfDay } from 'date-fns';
 
 interface EditTaskDialogProps {
@@ -26,6 +27,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
   const [progress, setProgress] = useState(0);
   const [deadline, setDeadline] = useState('');
   const [is_done, setIsDone] = useState(false);
+  const [status, setStatus] = useState<TaskStatus>(TaskStatus.BACKLOG);
   const [previousProgress, setPreviousProgress] = useState(0);
   const { toast } = useToast();
 
@@ -43,6 +45,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
       setPreviousProgress(task.progress);
       setDeadline(task.deadline ? format(parseISO(task.deadline), 'yyyy-MM-dd') : '');
       setIsDone(task.is_done || false);
+      setStatus(task.status || TaskStatus.BACKLOG);
     }
   }, [task]);
 
@@ -56,8 +59,10 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
     if (checked) {
       setPreviousProgress(progress);
       setProgress(100);
+      setStatus(TaskStatus.COMPLETED);
     } else {
       setProgress(previousProgress);
+      // Don't automatically change status when unchecking completion
     }
   };
 
@@ -74,6 +79,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
           progress,
           deadline,
           is_done: is_done ? true : false, // Explicitly set to false when not done
+          status,
           completed_at: is_done ? new Date().toISOString() : null,
           email: task.email
         }
@@ -125,6 +131,23 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated }: Edit
                 onChange={(e) => setDescription(e.target.value)}
                 required
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={status}
+                onValueChange={(value: TaskStatus) => setStatus(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
+                  <SelectItem value={TaskStatus.PENDING}>Pending</SelectItem>
+                  <SelectItem value={TaskStatus.PROGRESS}>In Progress</SelectItem>
+                  <SelectItem value={TaskStatus.COMPLETED}>Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deadline">Deadline</Label>

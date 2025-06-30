@@ -1,6 +1,6 @@
 "use client";
 
-import { Task } from "../../lib/types";
+import { Task, TaskStatus } from "../../lib/types";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { format, parseISO,startOfDay } from 'date-fns';
@@ -32,6 +32,43 @@ const formatDate = (dateString: string | null) => {
 };
 
 const getStatusInfo = (task: Task) => {
+  // Use the new status field if available, otherwise fall back to the old logic
+  if (task.status) {
+    switch (task.status) {
+      case TaskStatus.COMPLETED:
+        return {
+          color: 'bg-green-500/10',
+          border: 'border border-green-500/20',
+          text: 'text-green-500',
+          label: 'Completed'
+        };
+      case TaskStatus.PROGRESS:
+        return {
+          color: 'bg-blue-500/10',
+          border: 'border border-blue-500/20',
+          text: 'text-blue-500',
+          label: 'In Progress'
+        };
+      case TaskStatus.PENDING:
+        return {
+          color: 'bg-yellow-500/10',
+          border: 'border border-yellow-500/20',
+          text: 'text-yellow-500',
+          label: 'Pending'
+        };
+      case TaskStatus.BACKLOG:
+        return {
+          color: 'bg-gray-500/10',
+          border: 'border border-gray-500/20',
+          text: 'text-gray-500',
+          label: 'Backlog'
+        };
+      default:
+        break;
+    }
+  }
+  
+  // Fallback to old logic for backward compatibility
   if (task.is_done) {
     return {
       color: 'bg-green-500/10',
@@ -57,22 +94,35 @@ const getStatusInfo = (task: Task) => {
 };
 
 const getDeadlineColor = (task: Task) => {
-  if (!task.deadline || !task.updated) return 'text-muted-foreground';
+  if (!task.deadline) return 'text-muted-foreground';
   
   try {
     const deadline = parseISO(task.deadline);
-    const updated = parseISO(task.updated);
+    const currentDate = new Date();
     
     // Set both dates to start of day for comparison
     const deadlineStart = startOfDay(deadline);
-    const updatedStart = startOfDay(updated);
+    const currentStart = startOfDay(currentDate);
     
-    if (updatedStart > deadlineStart) {
-      return 'text-red-500';
-    } else if (updatedStart < deadlineStart) {
-      return 'text-green-500';
+    // If task is completed, compare updated date with deadline
+    if (task.is_done && task.updated) {
+      const updated = parseISO(task.updated);
+      const updatedStart = startOfDay(updated);
+      
+      if (updatedStart > deadlineStart) {
+        return 'text-red-500'; // Completed after deadline
+      } else {
+        return 'text-green-500'; // Completed before deadline
+      }
     }
-    return 'text-muted-foreground';
+    
+    // For ongoing tasks, compare current date with deadline
+    if (currentStart > deadlineStart) {
+      return 'text-red-500'; // Current date is past deadline
+    } else if (currentStart < deadlineStart) {
+      return 'text-green-500'; // Current date is before deadline
+    }
+    return 'text-muted-foreground'; // Current date equals deadline
   } catch {
     return 'text-muted-foreground';
   }

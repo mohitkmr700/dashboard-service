@@ -6,10 +6,11 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useCreateTaskMutation } from '../../lib/api/apiSlice';
 import { useToken } from '../../lib/token-context';
 import { useToast } from '../ui/use-toast';
-import { CreateTaskInput } from '../../lib/types';
+import { CreateTaskInput, TaskStatus } from '../../lib/types';
 
 interface CreateTaskDialogProps {
   onTaskCreated?: () => void;
@@ -21,6 +22,7 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
     title: '',
     description: '',
     deadline: '',
+    status: TaskStatus.BACKLOG, // Default to backlog
   });
   const { toast } = useToast();
 
@@ -40,6 +42,7 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
         deadline: formData.deadline,
         progress: 0,
         is_done: false,
+        status: formData.status,
         email: decodedToken?.email || '',
         completed_at: null
       };
@@ -52,7 +55,7 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
       });
 
       // Reset form and close dialog
-      setFormData({ title: '', description: '', deadline: '' });
+      setFormData({ title: '', description: '', deadline: '', status: TaskStatus.BACKLOG });
       setOpen(false);
       onTaskCreated?.();
       
@@ -94,6 +97,23 @@ export default function CreateTaskDialog({ onTaskCreated }: CreateTaskDialogProp
                 required
               />
             </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: TaskStatus) => setFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
+                    <SelectItem value={TaskStatus.PENDING}>Pending</SelectItem>
+                    <SelectItem value={TaskStatus.PROGRESS}>In Progress</SelectItem>
+                    <SelectItem value={TaskStatus.COMPLETED}>Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="deadline">Deadline</Label>
               <Input

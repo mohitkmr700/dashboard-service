@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'https://auth-service.algoarena.co.in';
+    const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN;
+    
+    if (!authDomain) {
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_AUTH_DOMAIN environment variable is not configured' },
+        { status: 500 }
+      );
+    }
     
     // Get the access token from cookies
     const accessToken = request.cookies.get('access_token')?.value;

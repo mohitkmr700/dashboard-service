@@ -41,7 +41,6 @@ export async function GET(request: Request) {
         'accept-language': 'en-GB,en;q=0.9',
         'dnt': '1',
         'priority': 'u=1, i',
-        'referer': 'http://localhost:3000/',
         'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36'
       }
     });

@@ -111,7 +111,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
         title: task.title,
         status: task.is_done 
           ? (isAfter(parseISO(task.updated!), parseISO(task.deadline!)) ? 'Late' : 'On Time')
-          : 'Pending',
+          : (isAfter(currentDate, parseISO(task.deadline!)) ? 'Overdue' : 'Pending'),
         time: format(parseISO(task.updated || task.created!), 'HH:mm'),
         progress: task.progress,
         deadline: format(parseISO(task.deadline!), 'HH:mm')
@@ -255,7 +255,7 @@ export function ProgressGraphCard({ tasks }: ProgressGraphCardProps) {
                           className={`ml-2 shrink-0 bg-[#1a1a1a] ${
                             task.status === 'On Time'
                               ? 'text-success'
-                              : task.status === 'Late'
+                              : task.status === 'Late' || task.status === 'Overdue'
                               ? 'text-destructive'
                               : 'text-gray-400'
                           }`}

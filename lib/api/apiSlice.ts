@@ -89,6 +89,7 @@ export const api = createApi({
               email: task.email,
               is_done: task.is_done || false,
               progress: task.progress || 0,
+              status: task.status || 'backlog', // Include status field
               deadline: task.deadline,
               created: new Date().toISOString(),
               updated: new Date().toISOString(),
@@ -212,7 +213,10 @@ export const api = createApi({
 
     getUser: builder.query<User, string>({
       query: (id) => {
-        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'https://auth-service.algoarena.co.in';
+        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN;
+        if (!authDomain) {
+          throw new Error('NEXT_PUBLIC_AUTH_DOMAIN environment variable is not configured');
+        }
         return {
           url: `${authDomain}/user/profiles/${id}`,
           headers: {
@@ -225,7 +229,10 @@ export const api = createApi({
 
     updateUser: builder.mutation<User, { id: string; userData: Partial<User> }>({
       query: ({ id, userData }) => {
-        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'https://auth-service.algoarena.co.in';
+        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN;
+        if (!authDomain) {
+          throw new Error('NEXT_PUBLIC_AUTH_DOMAIN environment variable is not configured');
+        }
         return {
           url: `${authDomain}/user/profiles/${id}`,
           method: 'PATCH',
@@ -246,7 +253,10 @@ export const api = createApi({
       string
     >({
       query: (id) => {
-        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'https://auth-service.algoarena.co.in';
+        const authDomain = process.env.NEXT_PUBLIC_AUTH_DOMAIN;
+        if (!authDomain) {
+          throw new Error('NEXT_PUBLIC_AUTH_DOMAIN environment variable is not configured');
+        }
         return {
           url: `${authDomain}/user/profiles/${id}`,
           method: 'DELETE',

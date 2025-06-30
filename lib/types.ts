@@ -9,7 +9,13 @@ export interface Route {
   role?: UserRole;
 }
 
-export type TaskStatus = 'completed' | 'pending' | 'in_progress' | 'overdue' | 'urgent';
+// Task status enum with the 4 required values
+export enum TaskStatus {
+  PENDING = 'pending',
+  BACKLOG = 'backlog',
+  PROGRESS = 'progress',
+  COMPLETED = 'completed'
+}
 
 export interface Task {
   id: string;
@@ -20,6 +26,7 @@ export interface Task {
   email: string;
   is_done: boolean | null;
   progress: number;
+  status: TaskStatus; // New status field
   deadline: string | null;
   created: string;
   updated: string;

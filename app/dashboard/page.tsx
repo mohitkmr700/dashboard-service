@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from 'react';
-import { Task } from '../../lib/types';
+import { Task, TaskStatus } from '../../lib/types';
 import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { TaskTable } from '../../components/tasks/task-table';
 import { DashboardStats } from '../../components/DashboardStats';
@@ -99,7 +99,7 @@ export default function DashboardPage() {
   const stats = useMemo(() => ({
     totalTasks: tasks.length,
     completedTasks: tasks.filter((task: Task) => task.is_done).length,
-    inProgressTasks: tasks.filter((task: Task) => !task.is_done && task.progress > 0).length,
+    inProgressTasks: tasks.filter((task: Task) => task.status === TaskStatus.PROGRESS).length,
     pendingTasks: tasks.filter((task: Task) => !task.is_done && task.progress === 0).length,
   }), [tasks]);
 

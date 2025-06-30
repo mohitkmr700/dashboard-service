@@ -32,8 +32,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const { data: userPermissionsData, isLoading: isLoadingPermissions, refetch } =
     useGetUserPermissionsQuery(decodedToken?.email || '', { 
       skip: !shouldFetchPermissions,
-      // Add polling to keep permissions fresh
-      pollingInterval: 30000, // Poll every 30 seconds
+      // Remove polling to prevent constant API calls
     });
 
   // Memoize the context value to prevent unnecessary re-renders
@@ -111,25 +110,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     };
   }, [shouldFetchPermissions, refetch]);
 
-  // Listen for route changes to refresh permissions
-  useEffect(() => {
-    const handleRouteChange = () => {
-      // Refresh permissions when route changes
-      if (shouldFetchPermissions) {
-        refetch();
-      }
-    };
-
-    window.addEventListener('popstate', handleRouteChange);
-    window.addEventListener('pushstate', handleRouteChange);
-    window.addEventListener('replacestate', handleRouteChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-      window.removeEventListener('pushstate', handleRouteChange);
-      window.removeEventListener('replacestate', handleRouteChange);
-    };
-  }, [shouldFetchPermissions, refetch]);
+  // Remove route change listeners that were causing constant API calls
 
   return (
     <SidebarContext.Provider value={contextValue}>
