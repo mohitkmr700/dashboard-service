@@ -247,6 +247,16 @@ export const api = createApi({
       invalidatesTags: [{ type: 'User', id: 'LIST' }],
     }),
 
+    // Create user (signup)
+    createUser: builder.mutation<{ message: string; accessToken: string; expiresIn: string }, { email: string; password: string; full_name: string; role: string; mobile: string }>({
+      query: (user) => ({
+        url: '/users',
+        method: 'POST',
+        body: user,
+      }),
+      invalidatesTags: [{ type: 'User', id: 'LIST' }],
+    }),
+
     // Permissions endpoints
     submitUserPermissions: builder.mutation<
       {
@@ -336,4 +346,7 @@ export const {
   // Permissions hooks
   useSubmitUserPermissionsMutation,
   useGetUserPermissionsQuery,
+  
+  // Create user (signup)
+  useCreateUserMutation,
 } = api; 

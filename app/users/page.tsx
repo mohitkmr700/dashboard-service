@@ -8,10 +8,11 @@ import { useToast } from '../../components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { useCallback, useState } from 'react';
 import { User } from '../../lib/types';
-import { Edit, Eye, User as UserIcon, Shield, Trash2 } from 'lucide-react';
+import { Edit, Eye, User as UserIcon, Shield, Trash2, UserPlus } from 'lucide-react';
 import { DataTable, Column, Action } from '../../components/ui/data-table';
 import { ViewUserPermissionsDialog } from '../../components/users/view-user-permissions-dialog';
 import { EditUserPermissionsDialog } from '../../components/users/edit-user-permissions-dialog';
+import { SignupDialog } from '../../components/users/signup-dialog';
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -23,6 +24,11 @@ export default function UsersPage() {
   // RTK Query hooks
   const { data: users = [], isLoading, error, refetch } = useGetUsersQuery();
   const [deleteUser] = useDeleteUserMutation();
+
+  // Handle user creation success
+  const handleUserCreated = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // Handle permissions update for sidebar control
   const handlePermissionsUpdate = useCallback((userEmail: string, visibleModuleIds: string[]) => {
@@ -130,10 +136,6 @@ export default function UsersPage() {
   // Filtered users based on role and created_at
   const filteredUsers = users;
 
-  if (isLoading) {
-    return <UsersShimmer />;
-  }
-
   if (error) {
     return (
       <div className="space-y-4 p-8">
@@ -153,6 +155,15 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Users</h1>
         <div className="flex gap-2">
+          <SignupDialog
+            trigger={
+              <Button className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Sign Up
+              </Button>
+            }
+            onUserCreated={handleUserCreated}
+          />
           <UserPermissionsDialog 
             users={filteredUsers}
             trigger={
@@ -169,16 +180,20 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <DataTable
-        data={filteredUsers}
-        columns={columns}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-        pageSize={10}
-        emptyMessage="No users found"
-      />
+      {isLoading ? (
+        <UsersShimmer />
+      ) : (
+        <DataTable
+          data={filteredUsers}
+          columns={columns}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          pageSize={10}
+          emptyMessage="No users found"
+        />
+      )}
 
       {/* View User Permissions Dialog */}
       {selectedUserForView && (
