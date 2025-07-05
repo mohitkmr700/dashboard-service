@@ -76,6 +76,26 @@ export async function POST(request: NextRequest) {
     // Get the access token from cookies
     const accessToken = request.cookies.get('access_token')?.value;
     
+    console.log('Signup request - Token found:', !!accessToken);
+    if (accessToken) {
+      // Decode and log token info for debugging
+      try {
+        const tokenParts = accessToken.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          console.log('Token payload:', {
+            exp: payload.exp,
+            currentTime: Math.floor(Date.now() / 1000),
+            isExpired: payload.exp < Math.floor(Date.now() / 1000),
+            email: payload.email,
+            role: payload.role
+          });
+        }
+      } catch (e) {
+        console.error('Could not decode token',e);
+      }
+    }
+    
     if (!accessToken) {
       return NextResponse.json(
         { error: 'No access token found' },

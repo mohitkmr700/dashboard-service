@@ -7,8 +7,9 @@ import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import { useToast } from "../ui/use-toast"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useCreateUserMutation } from '../../lib/api/apiSlice'
+import { useToken } from '../../lib/token-context'
 
 interface SignupDialogProps {
   trigger: React.ReactNode
@@ -26,6 +27,7 @@ interface SignupFormData {
 export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
   const [open, setOpen] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const { toast } = useToast()
   const [formData, setFormData] = useState<SignupFormData>({
     email: "",
@@ -35,6 +37,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
     mobile: ""
   })
   const [createUser, { isLoading: isSubmitting }] = useCreateUserMutation()
+  const { refreshToken } = useToken()
 
   const handleInputChange = (field: keyof SignupFormData, value: string) => {
     setFormData(prev => ({
@@ -75,11 +78,19 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
       return
     }
     try {
+      // Refresh token before creating user to ensure we have a valid token
+      await refreshToken()
       await createUser(formData).unwrap()
+      
+      // Show success state
+      setIsSuccess(true)
+      
       toast({
         title: "Success",
         description: "User created successfully",
       })
+      
+      // Reset form
       setFormData({
         email: "",
         password: "",
@@ -87,8 +98,14 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
         role: "",
         mobile: ""
       })
-      setOpen(false)
-      if (onUserCreated) onUserCreated()
+      
+      // Delay closing dialog and calling callback to show success state
+      setTimeout(() => {
+        setOpen(false)
+        setIsSuccess(false)
+        if (onUserCreated) onUserCreated()
+      }, 1500) // Show success state for 1.5 seconds
+      
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'data' in err 
         ? (err.data as { error?: string })?.error 
@@ -112,6 +129,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
       mobile: ""
     })
     setShowPassword(false)
+    setIsSuccess(false)
   }
 
   return (
@@ -126,9 +144,14 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>
+            {isSuccess ? "User Created Successfully!" : "Create New User"}
+          </DialogTitle>
           <DialogDescription>
-            Fill in the details below to create a new user account.
+            {isSuccess 
+              ? "The user has been created and will appear in the users list shortly."
+              : "Fill in the details below to create a new user account."
+            }
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -141,7 +164,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
               value={formData.email}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('email', e.target.value)}
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             />
           </div>
 
@@ -155,7 +178,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
                 value={formData.password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('password', e.target.value)}
                 required
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSuccess}
               />
               <Button
                 type="button"
@@ -163,7 +186,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSuccess}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -183,7 +206,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
               value={formData.full_name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('full_name', e.target.value)}
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             />
           </div>
 
@@ -192,7 +215,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
             <Select
               value={formData.role}
               onValueChange={(value) => handleInputChange('role', value)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
@@ -213,7 +236,7 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
               value={formData.mobile}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('mobile', e.target.value)}
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             />
           </div>
 
@@ -222,15 +245,27 @@ export function SignupDialog({ trigger, onUserCreated }: SignupDialogProps) {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuccess}
             >
-              {isSubmitting ? "Creating..." : "Create User"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : isSuccess ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Success!
+                </>
+              ) : (
+                "Create User"
+              )}
             </Button>
           </div>
         </form>

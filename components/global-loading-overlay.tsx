@@ -4,16 +4,21 @@ import { useLoading } from '../lib/loading-context';
 import { useToken } from '../lib/token-context';
 import { useSidebar } from '../lib/sidebar-context';
 import { memo, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export const GlobalLoadingOverlay = memo(function GlobalLoadingOverlay() {
   const { isLoading, loadingMessage, isLoggingOut } = useLoading();
   const { isLoading: isTokenLoading } = useToken();
   const { isLoading: isSidebarLoading } = useSidebar();
+  const pathname = usePathname();
   
   const [showOverlay, setShowOverlay] = useState(false);
 
-  // Show loading overlay when any of these are loading
-  const shouldShow = isLoading || isTokenLoading || isSidebarLoading || isLoggingOut;
+  // Don't show loading overlay on login page
+  const isLoginPage = pathname === '/login';
+  
+  // Show loading overlay when any of these are loading, but not on login page
+  const shouldShow = !isLoginPage && (isLoading || isTokenLoading || isSidebarLoading || isLoggingOut);
 
   // Add a small delay to prevent flickering and ensure smooth transitions
   useEffect(() => {

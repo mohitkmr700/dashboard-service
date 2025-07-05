@@ -9,13 +9,14 @@ import { Input } from "../../components/ui/input"
 import { Button } from "../../components/ui/button"
 import { ThemeToggle } from "../../components/theme-toggle"
 import { useToast } from "../../components/ui/use-toast"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Script from "next/script"
 import { useLoginMutation } from "../../lib/api/authSlice"
 import { clearTokenCache } from "../../lib/token-api"
 import { store } from "../../lib/store"
 import { api } from "../../lib/api/apiSlice"
 import { authApi } from "../../lib/api/authSlice"
+import { useLoading } from "../../lib/loading-context"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { theme } = useTheme()
+  const { setIsLoading, setLoadingMessage } = useLoading()
 
   // RTK Query login mutation
   const [login, { isLoading: isLoggingIn }] = useLoginMutation()
@@ -76,7 +78,10 @@ export default function LoginPage() {
     // Clear RTK Query cache
     store.dispatch(api.util.resetApiState());
     store.dispatch(authApi.util.resetApiState());
-  }, [])
+    
+    // Reset loading state when login page loads
+    setIsLoading(false);
+  }, [setIsLoading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,9 +92,16 @@ export default function LoginPage() {
       // Clear any cached data before navigation
       clearTokenCache();
       
+      // Show loading overlay for dashboard transition
+      setLoadingMessage("Login successful! Loading your dashboard...")
+      setIsLoading(true)
+      
       // Navigate to dashboard
       router.replace("/dashboard")
     } catch (error: unknown) {
+      // Reset loading state on error
+      setIsLoading(false);
+      
       const errorMessage = error && typeof error === 'object' && 'data' in error 
         ? (error.data as { error?: string })?.error 
         : error instanceof Error 
@@ -186,7 +198,14 @@ export default function LoginPage() {
                   className="w-full"
                   disabled={isLoggingIn}
                 >
-                  Login
+                  {isLoggingIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </form>
             </CardContent>

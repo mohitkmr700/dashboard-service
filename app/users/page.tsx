@@ -27,8 +27,10 @@ export default function UsersPage() {
 
   // Handle user creation success
   const handleUserCreated = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    // The createUser mutation already invalidates the User cache
+    // so the users list will automatically refetch
+    console.log('User created successfully - cache will be invalidated automatically');
+  }, []);
 
   // Handle permissions update for sidebar control
   const handlePermissionsUpdate = useCallback((userEmail: string, visibleModuleIds: string[]) => {
