@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "../components/ui/toaster";
 import { AppProviders } from "./providers";
-import { TokenProvider } from "../lib/token-context";
 import { GlobalLoadingOverlay } from "../components/global-loading-overlay";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,13 +22,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <AppProviders>
-          <TokenProvider>
-            {children}
-            <GlobalLoadingOverlay />
-            <Toaster />
-          </TokenProvider>
+          {children}
+          <GlobalLoadingOverlay />
+          <Toaster />
         </AppProviders>
       </body>
     </html>

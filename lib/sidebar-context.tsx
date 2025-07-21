@@ -66,11 +66,17 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       }).map(module => module.id);
       
       setVisibleModules(visibleModuleIds);
-      localStorage.setItem('visibleModules', JSON.stringify(visibleModuleIds));
+      // Only set localStorage on client side
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('visibleModules', JSON.stringify(visibleModuleIds));
+      }
     } else if (!isLoadingPermissions && shouldFetchPermissions) {
       // If API returns no data, show NO modules (not all)
       setVisibleModules([]);
-      localStorage.setItem('visibleModules', JSON.stringify([]));
+      // Only set localStorage on client side
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('visibleModules', JSON.stringify([]));
+      }
     }
   }, [userPermissionsData, decodedToken?.email, isLoadingPermissions, shouldFetchPermissions, forceRefresh]);
 
@@ -84,7 +90,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const handlePermissionsUpdate = (event: CustomEvent) => {
       const { visibleModules: newVisibleModules } = event.detail;
       setVisibleModules(newVisibleModules);
-      localStorage.setItem('visibleModules', JSON.stringify(newVisibleModules));
+      // Only set localStorage on client side
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('visibleModules', JSON.stringify(newVisibleModules));
+      }
       
       // Force a refresh of the permissions API to ensure consistency
       setTimeout(() => {

@@ -51,4 +51,76 @@ export interface User {
   updated_at?: string;
   is_active?: boolean;
   profile_picture?: string;
+}
+
+// Expense Plan Types
+export interface PlannedExpenseItem {
+  id: string;
+  category: string;
+  planned_amount: number;
+  actual_paid?: number;
+  variance?: number;
+  description?: string;
+  created?: string;
+  updated?: string;
+}
+
+export interface ExpensePlan {
+  id: string;
+  name: string;
+  month: string;
+  year: number;
+  version: number;
+  total_planned: number;
+  total_actual: number;
+  total_variance: number;
+  savings: number;
+  is_active: boolean;
+  created: string;
+  updated: string;
+  planned_expense_items: PlannedExpenseItem[];
+}
+
+// New types for plans list
+export interface PlanListItem {
+  id: number;
+  month: string;
+  plan_name: string;
+  version: number;
+  is_active: boolean;
+  created_at: string;
+  notes?: string;
+  planned_expense_items: {
+    id: number;
+    category: string;
+    planned_amount: number;
+  }[];
+}
+
+export interface PlansListResponse {
+  success: boolean;
+  data: PlanListItem[];
+}
+
+export interface SyncPlanPayload {
+  month: string;
+  year: number;
+  prompt?: string;
+}
+
+export interface VarianceResult {
+  category: string;
+  planned_amount: number;
+  actual_paid: number;
+  variance: number;
+  percentage_variance: number;
+}
+
+export interface PlanSummary {
+  total_planned: number;
+  total_actual: number;
+  total_variance: number;
+  percentage_fulfilled: number;
+  savings: number;
+  is_over_budget: boolean;
 } 

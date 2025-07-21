@@ -73,6 +73,9 @@ export function TokenProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Only run on client side to avoid hydration issues
+    if (typeof window === 'undefined') return;
+
     // Check if token exists in localStorage first
     const storedToken = localStorage.getItem('access_token');
     if (storedToken) {

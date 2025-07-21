@@ -35,7 +35,7 @@ export default function LoginPage() {
   const lightThemeAnimation = "https://lottie.host/embed/981e2235-19ca-4891-a2bf-ba8606b0b85e/cRjSFR2lVY.lottie"
   const darkThemeAnimation = "https://lottie.host/c5c78691-0854-426f-b995-5189caecd495/9QKJ7zFavh.lottie"
 
-  // Handle hydration
+  // Handle hydration and theme initialization
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -43,6 +43,9 @@ export default function LoginPage() {
   // Memoize the animation component to prevent unnecessary re-renders
   const AnimationComponent = useMemo(() => {
     if (!mounted) return null
+    
+    // Don't render theme-dependent content until theme is resolved
+    if (theme === "system" || theme === undefined) return null
     
     if (theme === "light") {
       return (
@@ -133,7 +136,11 @@ export default function LoginPage() {
             
             {/* Lottie Animation in Center */}
             <div className="flex-1 flex items-center relative">
-              {AnimationComponent}
+              {AnimationComponent || (
+                <div className="w-full max-w-md h-96 flex items-center justify-center">
+                  <div className="animate-pulse bg-muted rounded-lg w-full h-full"></div>
+                </div>
+              )}
             </div>
             
             <p className="text-sm text-muted-foreground">- Mohit Kumar</p>

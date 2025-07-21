@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { Task, CreateTaskInput, User } from '../types';
+import { Task, CreateTaskInput, User, ExpensePlan, SyncPlanPayload, VarianceResult, PlansListResponse } from '../types';
 import { PermissionsPayload } from '../modules';
 
 // Define the base query with authentication
@@ -32,7 +32,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
   reducerPath: 'api',
   baseQuery,
-  tagTypes: ['Task', 'User', 'Permissions'],
+  tagTypes: ['Task', 'User', 'Permissions', 'ExpensePlan'],
   endpoints: (builder) => ({
     // Task endpoints
     getTasks: builder.query<Task[], string>({
@@ -325,6 +325,41 @@ export const api = createApi({
       },
       providesTags: (result, error, email) => [{ type: 'Permissions', id: email }],
     }),
+
+    // Expense Plan endpoints
+    getActivePlan: builder.query<ExpensePlan, string>({
+      query: (month) => `/expense/plan/${month}`,
+      providesTags: (result, error, month) => [{ type: 'ExpensePlan', id: month }],
+    }),
+
+    syncPlan: builder.mutation<VarianceResult[], SyncPlanPayload>({
+      query: (body) => ({
+        url: '/expense/plan/sync',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'ExpensePlan' }],
+    }),
+
+    getPlanVarianceHistory: builder.query<VarianceResult[], string>({
+      query: (planId) => `/expense/plan/variance-history/${planId}`,
+      providesTags: (result, error, planId) => [{ type: 'ExpensePlan', id: planId }],
+    }),
+
+    // Plans list endpoints
+    getPlansList: builder.query<PlansListResponse, void>({
+      query: () => '/expense/plans',
+      providesTags: [{ type: 'ExpensePlan', id: 'LIST' }],
+    }),
+
+    activatePlan: builder.mutation<{ success: boolean }, number>({
+      query: (planId) => ({
+        url: `/expense/plan/${planId}/is_active`,
+        method: 'PATCH',
+        body: { is_active: true },
+      }),
+      invalidatesTags: [{ type: 'ExpensePlan' }],
+    }),
   }),
 });
 
@@ -349,4 +384,11 @@ export const {
   
   // Create user (signup)
   useCreateUserMutation,
+
+  // Expense Plan hooks
+  useGetActivePlanQuery,
+  useSyncPlanMutation,
+  useGetPlanVarianceHistoryQuery,
+  useGetPlansListQuery,
+  useActivatePlanMutation,
 } = api; 
