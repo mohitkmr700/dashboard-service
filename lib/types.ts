@@ -123,4 +123,46 @@ export interface PlanSummary {
   percentage_fulfilled: number;
   savings: number;
   is_over_budget: boolean;
+  monthly_salary?: number;
+  salary_savings?: number;
+  salary_utilization_percentage?: number;
+}
+
+// Expense Management Types
+export interface ExpenseItem {
+  id: string;
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'pending' | 'overdue';
+  paymentMethod: string;
+  notes?: string;
+  created?: string;
+  updated?: string;
+}
+
+export interface CreateExpenseInput {
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'pending' | 'overdue';
+  paymentMethod: string;
+  notes?: string;
+}
+
+export interface UpdateExpenseInput extends Partial<CreateExpenseInput> {
+  id: string;
+}
+
+export interface ExpenseStats {
+  totalExpenses: number;
+  paidExpenses: number;
+  pendingExpenses: number;
+  overdueExpenses: number;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+  overdueAmount: number;
 } 

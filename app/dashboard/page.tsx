@@ -6,9 +6,9 @@ import { ProgressGraphCard } from '../../components/tasks/progress-graph-card';
 import { StatusTaskBoxes } from '../../components/tasks/status-task-boxes';
 import { DashboardStats } from '../../components/DashboardStats';
 import CreateTaskDialog from '../../components/tasks/create-task-dialog';
+import { DashboardShimmer } from '../../components/dashboard-shimmer';
 import { useGetTasksQuery } from '../../lib/api/apiSlice';
 import { useLoading } from '../../lib/loading-context';
-import { DashboardShimmer } from '../../components/dashboard-shimmer';
 import { useToken } from '../../lib/token-context';
 import { useSidebar } from '../../lib/sidebar-context';
 

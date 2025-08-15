@@ -77,6 +77,7 @@ dashboard-service/
    ```env
    NEXT_PUBLIC_AUTH_DOMAIN=your_auth_service_url
    NEXT_PUBLIC_API_DOMAIN=your_api_service_url
+   NEXT_PUBLIC_SALARY_INHAND=your_monthly_salary_amount
    ```
 
 4. **Run the development server**

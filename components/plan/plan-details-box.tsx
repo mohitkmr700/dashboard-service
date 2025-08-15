@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { PlanListItem } from "../../lib/types";
 import { format } from "date-fns";
+import { getMonthlySalary, calculateSalaryMetrics } from "../../lib/utils";
 
 interface PlanDetailsBoxProps {
   selectedPlan: PlanListItem | null;
@@ -138,6 +139,40 @@ export function PlanDetailsBox({ selectedPlan, isLoading }: PlanDetailsBoxProps)
             </span>
           </div>
         </div>
+
+        {/* Salary Analysis - Show only if salary is configured */}
+        {(() => {
+          const monthlySalary = getMonthlySalary();
+          const { salarySavings, salaryUtilizationPercentage } = calculateSalaryMetrics(totalPlanned);
+          
+          if (!monthlySalary) return null;
+          
+          return (
+            <div className="pt-2 border-t">
+              <h4 className="font-medium mb-3 text-blue-600 dark:text-blue-400">Salary Analysis</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Monthly Salary:</span>
+                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    {formatCurrency(monthlySalary)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Salary Savings:</span>
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    {salarySavings ? formatCurrency(salarySavings) : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Utilization:</span>
+                  <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                    {salaryUtilizationPercentage ? `${salaryUtilizationPercentage.toFixed(1)}%` : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );

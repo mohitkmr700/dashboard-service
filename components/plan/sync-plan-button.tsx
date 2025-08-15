@@ -56,6 +56,8 @@ export function SyncPlanButton({ month, year, prompt, onSyncComplete }: SyncPlan
     <Button
       onClick={handleSync}
       disabled={isLoading}
+      variant="outline"
+      size="sm"
       className="flex items-center gap-2"
     >
       {isLoading ? (

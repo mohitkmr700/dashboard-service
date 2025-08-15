@@ -3,6 +3,9 @@
 import { useGetUsersQuery, useDeleteUserMutation } from '../../lib/api/apiSlice';
 import { UsersShimmer } from '../../components/users-shimmer';
 import { UserPermissionsDialog } from '../../components/users/user-permissions-dialog';
+import { ViewUserPermissionsDialog } from '../../components/users/view-user-permissions-dialog';
+import { EditUserPermissionsDialog } from '../../components/users/edit-user-permissions-dialog';
+import { SignupDialog } from '../../components/users/signup-dialog';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -10,9 +13,6 @@ import { useCallback, useState } from 'react';
 import { User } from '../../lib/types';
 import { Edit, Eye, User as UserIcon, Shield, Trash2, UserPlus } from 'lucide-react';
 import { DataTable, Column, Action } from '../../components/ui/data-table';
-import { ViewUserPermissionsDialog } from '../../components/users/view-user-permissions-dialog';
-import { EditUserPermissionsDialog } from '../../components/users/edit-user-permissions-dialog';
-import { SignupDialog } from '../../components/users/signup-dialog';
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -182,9 +182,9 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <UsersShimmer />
-      ) : (
+              {isLoading ? (
+          <UsersShimmer />
+        ) : (
         <DataTable
           data={filteredUsers}
           columns={columns}

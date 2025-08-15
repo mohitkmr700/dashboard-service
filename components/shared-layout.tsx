@@ -2,9 +2,9 @@
 
 import React, { memo } from 'react';
 import { Sidebar } from './sidebar';
+import { DashboardShimmer } from './dashboard-shimmer';
 import { SidebarProvider } from '../lib/sidebar-context';
 import { useToken } from '../lib/token-context';
-import { DashboardShimmer } from './dashboard-shimmer';
 
 interface SharedLayoutProps {
   children: React.ReactNode;

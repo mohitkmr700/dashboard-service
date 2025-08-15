@@ -14,6 +14,7 @@ import { PlanSelector } from '../../../components/plan/plan-selector';
 import { PlanDetailsBox } from '../../../components/plan/plan-details-box';
 import { PlanSummary, PlanListItem } from '../../../lib/types';
 import { format } from 'date-fns';
+import { getMonthlySalary, calculateSalaryMetrics } from '../../../lib/utils';
 
 export default function PlanPage() {
   const { setIsLoading, setLoadingMessage } = useLoading();
@@ -89,24 +90,34 @@ export default function PlanPage() {
     if (plansError) {
       console.error('Plans API error:', plansError);
       
-      // Extract error message from RTK Query error
-      let errorMessage = "Unable to fetch expense plans data. Please try again.";
+      // Only show error toast for actual API failures, not empty data
+      // Check if it's a network error or server error, not just empty response
+      const isActualError = plansError && typeof plansError === 'object' && (
+        'status' in plansError || 
+        'error' in plansError || 
+        'message' in plansError
+      );
       
-      if (plansError && typeof plansError === 'object') {
-        if ('data' in plansError && plansError.data && typeof plansError.data === 'object' && 'error' in plansError.data) {
-          errorMessage = (plansError.data as { error: string }).error;
-        } else if ('error' in plansError && plansError.error) {
-          errorMessage = String(plansError.error);
-        } else if ('message' in plansError && plansError.message) {
-          errorMessage = String(plansError.message);
+      if (isActualError) {
+        // Extract error message from RTK Query error
+        let errorMessage = "Unable to fetch expense plans data. Please try again.";
+        
+        if (plansError && typeof plansError === 'object') {
+          if ('data' in plansError && plansError.data && typeof plansError.data === 'object' && 'error' in plansError.data) {
+            errorMessage = (plansError.data as { error: string }).error;
+          } else if ('error' in plansError && plansError.error) {
+            errorMessage = String(plansError.error);
+          } else if ('message' in plansError && plansError.message) {
+            errorMessage = String(plansError.message);
+          }
         }
+        
+        toast({
+          title: "Failed to Load Plans",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-      
-      toast({
-        title: "Failed to Load Plans",
-        description: errorMessage,
-        variant: "destructive",
-      });
     }
   }, [plansError, toast]);
 
@@ -136,6 +147,10 @@ export default function PlanPage() {
     const percentageFulfilled = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
     const isOverBudget = totalVariance > 0;
 
+    // Get monthly salary and calculate salary-based metrics
+    const monthlySalary = getMonthlySalary();
+    const { salarySavings, salaryUtilizationPercentage } = calculateSalaryMetrics(totalPlanned);
+
     return {
       total_planned: totalPlanned,
       total_actual: totalActual,
@@ -143,6 +158,9 @@ export default function PlanPage() {
       percentage_fulfilled: percentageFulfilled,
       savings: savings,
       is_over_budget: isOverBudget,
+      monthly_salary: monthlySalary,
+      salary_savings: salarySavings,
+      salary_utilization_percentage: salaryUtilizationPercentage,
     };
   }, [plan]);
 
@@ -190,11 +208,11 @@ export default function PlanPage() {
 
   // Clear loading state once all data is loaded
   useEffect(() => {
-    if (isPageReady && !plansError) {
+    if (isPageReady && (!plansError || (plansResponse && (!plansResponse.data || plansResponse.data.length === 0)))) {
       setLoadingMessage("Plan tracker ready!");
       setIsLoading(false);
     }
-  }, [isPageReady, plansError, setIsLoading, setLoadingMessage]);
+  }, [isPageReady, plansError, plansResponse, setIsLoading, setLoadingMessage]);
 
   // Fallback: Clear loading state after a maximum time
   useEffect(() => {
@@ -260,6 +278,57 @@ export default function PlanPage() {
     );
   }
 
+  // Show empty state if no plans exist
+  if (isPageReady && plansResponse && (!plansResponse.data || plansResponse.data.length === 0) && !plansError) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 p-3 md:p-4 border-b bg-background">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold">Expense Plan Tracker</h1>
+            </div>
+            <SyncPlanButton 
+              month={currentMonth}
+              year={currentYear}
+              onSyncComplete={handleSyncComplete}
+            />
+          </div>
+        </div>
+
+        {/* Empty State Content */}
+        <div className="flex-1 p-3 md:p-4 overflow-y-auto">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md">
+              <div className="mb-6">
+                <div className="w-24 h-24 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No Expense Plans Found</h3>
+                <p className="text-muted-foreground mb-6">
+                  You haven&apos;t created any expense plans yet. Create your first plan to start tracking your monthly expenses.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <SyncPlanButton 
+                  month={currentMonth}
+                  year={currentYear}
+                  onSyncComplete={handleSyncComplete}
+                />
+                <p className="text-sm text-muted-foreground">
+                  This will create a new expense plan for {currentMonth} {currentYear}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Only render content if we're fully ready
   if (!isPageReady || !currentMonth) {
     return (
@@ -290,10 +359,12 @@ export default function PlanPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold">Expense Plan Tracker</h1>
-            <PlanSelector 
-              selectedPlanId={plan?.id ? parseInt(plan.id) : undefined}
-              onPlanChange={handlePlanChange}
-            />
+            {plansResponse?.data && plansResponse.data.length > 0 && (
+              <PlanSelector 
+                selectedPlanId={plan?.id ? parseInt(plan.id) : undefined}
+                onPlanChange={handlePlanChange}
+              />
+            )}
           </div>
           <SyncPlanButton 
             month={currentMonth}
@@ -308,16 +379,14 @@ export default function PlanPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Main Content - 3 columns */}
           <div className="lg:col-span-3 grid gap-3">
-            {/* Plan Summary Card */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <PlanSummaryCard
-                summary={planSummary}
-                month={currentMonth}
-                year={currentYear}
-                planName={plan?.name || "Monthly Expense Plan"}
-                version={plan?.version || 1}
-              />
-            </div>
+            {/* Plan Summary Card - Full Width */}
+            <PlanSummaryCard
+              summary={planSummary}
+              month={currentMonth}
+              year={currentYear}
+              planName={plan?.name || "Monthly Expense Plan"}
+              version={plan?.version || 1}
+            />
             
             {/* Plan Progress Charts */}
             <PlanProgressChart

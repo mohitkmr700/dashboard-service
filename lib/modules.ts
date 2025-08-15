@@ -1,4 +1,4 @@
-import { Home, Users, Settings, BarChart, FileText, Mail, CheckSquare, PieChart } from "lucide-react";
+import { Home, Users, Settings, BarChart, FileText, Mail, CheckSquare, PieChart, Receipt } from "lucide-react";
 
 export interface ModuleConfig {
   id: string;
@@ -15,6 +15,13 @@ export const modules: ModuleConfig[] = [
     icon: PieChart, 
     href: '/dashboard/plan',
     emoji: '💰'
+  },
+  { 
+    id: 'expense', 
+    label: 'Expense Management', 
+    icon: Receipt, 
+    href: '/expense',
+    emoji: '💳'
   },
   { 
     id: 'dashboard', 
